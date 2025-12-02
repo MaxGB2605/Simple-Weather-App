@@ -6,17 +6,29 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 
 @Composable
-fun WeatherScreen(modifier: Modifier= Modifier) {
+fun WeatherScreen(
+    modifier: Modifier = Modifier,
+    viewModel: WeatherViewModel = viewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsState()
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -24,9 +36,16 @@ fun WeatherScreen(modifier: Modifier= Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
+        Icon(
+            imageVector = Icons.Filled.WbSunny,
+            contentDescription = "Sunny",
+            tint = Color.Yellow,
+            modifier = Modifier.size(100.dp)
+        )
         // City Name
         Text(
-            text = "New York",
+            text = uiState.cityName,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
@@ -35,7 +54,7 @@ fun WeatherScreen(modifier: Modifier= Modifier) {
 
         // Temperature
         Text(
-            text = "44°F",
+            text = uiState.temperature,
             style = MaterialTheme.typography.displayLarge,
             fontWeight = FontWeight.Bold
         )
@@ -44,7 +63,7 @@ fun WeatherScreen(modifier: Modifier= Modifier) {
 
         // Condition
         Text(
-            text = "Sunny",
+            text = uiState.condition,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.secondary
