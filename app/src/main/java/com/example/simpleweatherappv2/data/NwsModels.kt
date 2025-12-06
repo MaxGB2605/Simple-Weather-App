@@ -3,22 +3,22 @@ package com.example.simpleweatherappv2.data
 import com.google.gson.annotations.SerializedName
 
 data class PointsResponse(
-    val properties: PointsProperties
+    val properties: PointsProperties,
 )
 
 data class PointsProperties(
     val gridId: String,
     val gridX: Int,
     val gridY: Int,
-    val forecast: String
+    val forecast: String,
 )
 
 data class ForecastResponse(
-    val properties: ForecastProperties
+    val properties: ForecastProperties,
 )
 
 data class ForecastProperties(
-    val periods: List<ForecastPeriod>
+    val periods: List<ForecastPeriod>,
 )
 
 data class ForecastPeriod(
@@ -26,5 +26,13 @@ data class ForecastPeriod(
     val temperature: Int,
     val temperatureUnit: String,
     val shortForecast: String,
-    val detailedForecast: String
+    val detailedForecast: String,
+    val windSpeed: String,
+    val windDirection: String,
+    val relativeHumidity: ForecastUnitValue?,
+    val probabilityOfPrecipitation: ForecastUnitValue?,
+)
+
+data class ForecastUnitValue(
+    val value: Int?,
 )

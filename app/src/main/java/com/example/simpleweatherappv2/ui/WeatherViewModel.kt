@@ -32,6 +32,9 @@ class WeatherViewModel : ViewModel() {
                     cityName = city,
                     temperature = "${weather.temperature}°${weather.temperatureUnit}",
                     condition = weather.shortForecast,
+                    humidity = "${weather.relativeHumidity?.value ?: 0}%",
+                    wind = "${weather.windSpeed} ${weather.windDirection}",
+                    rainChance = "${weather.probabilityOfPrecipitation?.value ?: 0}%",
                     isLoading = false
                 )
             } else {

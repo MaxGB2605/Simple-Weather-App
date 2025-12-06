@@ -4,14 +4,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -77,10 +82,50 @@ fun WeatherScreen(
             color = MaterialTheme.colorScheme.secondary
         )
 
-        Spacer(modifier.height(32.dp))
+
+        Spacer(modifier.height(20.dp))
+
+        // Details Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White.copy(alpha = 0.3f) // Semi-transparent
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                WeatherDetailItem(label = "Humidity", value = uiState.humidity)
+                WeatherDetailItem(label = "Wind", value = uiState.wind)
+                WeatherDetailItem(label = "Rain", value = uiState.rainChance)
+            }
+        }
+
+        Spacer(modifier.height(20.dp))
 
         Button(onClick = {
             viewModel.updateWeather("New York")
         }) { Text(text = if (uiState.isLoading) "Loading it ..." else "Got Real Weather") }
+    }
+}
+
+@Composable
+fun WeatherDetailItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.8f)
+        )
     }
 }
