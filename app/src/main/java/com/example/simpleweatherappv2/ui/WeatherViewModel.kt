@@ -17,7 +17,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     private val _uiState = MutableStateFlow(WeatherUiState())
     val uiState = _uiState.asStateFlow()
-
+    init {
+        updateWeather("New York") // Loads NYC on startup!
+    }
     fun updateWeather(locationSearch: String) {
         viewModelScope.launch(Dispatchers.IO) { // Run on IO thread (background)
             // Set loading state
