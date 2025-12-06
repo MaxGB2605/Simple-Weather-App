@@ -1,6 +1,8 @@
 package com.example.simpleweatherappv2.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +32,11 @@ fun WeatherScreen(
     viewModel: WeatherViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFF87CEEB))
+    )
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -68,5 +76,11 @@ fun WeatherScreen(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.secondary
         )
+
+        Spacer(modifier.height(32.dp))
+
+        Button(onClick = {
+            viewModel.updateWeather("New York")
+        }) { Text(text = if (uiState.isLoading) "Loading it ..." else "Got Real Weather") }
     }
 }
