@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -45,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+
 @OptIn(ExperimentalMaterial3Api::class) // Use Experimental M3 API
 @Composable
 fun WeatherScreen(
@@ -64,8 +64,8 @@ fun WeatherScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF5CA9F5),
-                        Color(0xFFFFFFFF)
+                        Color(0xffd3f637),
+                        Color(0xff070f9c)
                     )
                 )
             )
@@ -177,12 +177,12 @@ fun WeatherScreen(
                     // 3. WEATHER CONTENT
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    Icon(
-                        imageVector = Icons.Filled.WbSunny,
-                        contentDescription = "Sunny",
-                        tint = Color.Yellow,
-                        modifier = Modifier.size(100.dp)
-                    )
+//                    Icon(
+//                        imageVector = Icons.Filled.WbSunny,
+//                        contentDescription = "Sunny",
+//                        tint = Color.Yellow,
+//                        modifier = Modifier.size(100.dp)
+//                    )
 
                     Text(
                         text = uiState.cityName,
@@ -212,7 +212,7 @@ fun WeatherScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.3f))
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f))
                     ) {
                         Row(
                             modifier = Modifier
@@ -231,14 +231,14 @@ fun WeatherScreen(
                     Button(
                         onClick = onNavigateToForecast,
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.3f)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
                     ) {
                         Text(
                             "7-Day Forecast",
-                            color = Color(0xFF5CA9F5),
+                            color = Color.Blue,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -248,6 +248,7 @@ fun WeatherScreen(
     }
 }
 
+
 @Composable
 fun WeatherDetailItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -255,12 +256,12 @@ fun WeatherDetailItem(label: String, value: String) {
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = Color.Blue
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.8f)
+            color = Color.Black
         )
     }
 }
