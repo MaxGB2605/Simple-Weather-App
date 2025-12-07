@@ -18,8 +18,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Thunderstorm
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -49,6 +53,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.simpleweatherappv2.data.ForecastPeriod
 import com.example.simpleweatherappv2.ui.theme.DeepPurple
 import com.example.simpleweatherappv2.ui.theme.GlassLight
+import com.example.simpleweatherappv2.ui.theme.GoldenSun
 import com.example.simpleweatherappv2.ui.theme.MidnightBlue
 import com.example.simpleweatherappv2.ui.theme.NeonCyan
 import com.example.simpleweatherappv2.ui.theme.SoftWhite
@@ -327,10 +332,40 @@ fun HourlyForecastItem(period: ForecastPeriod) {
             Spacer(modifier = Modifier.height(8.dp))
 
 // Icon
+            val (icon, iconColor) = when {
+                period.shortForecast.contains(
+                    "Sunny",
+                    ignoreCase = true
+                ) || period.shortForecast.contains("Clear", ignoreCase = true) ->
+                    Icons.Default.WbSunny to GoldenSun
+
+                period.shortForecast.contains(
+                    "Rain",
+                    ignoreCase = true
+                ) || period.shortForecast.contains(
+                    "Shower",
+                    ignoreCase = true
+                ) -> Icons.Default.WaterDrop to NeonCyan
+
+                period.shortForecast.contains(
+                    "Thunder",
+                    ignoreCase = true
+                ) || period.shortForecast.contains(
+                    "Storm",
+                    ignoreCase = true
+                ) -> Icons.Default.Thunderstorm to Color(0xFFFFD700)
+
+                period.shortForecast.contains(
+                    "Snow",
+                    ignoreCase = true
+                ) -> Icons.Default.AcUnit to Color.White
+
+                else -> Icons.Default.Cloud to Color.Gray
+            }
             Icon(
-                imageVector = Icons.Default.Cloud, // Or your logic for sun/cloud
-                contentDescription = null,
-                tint = Color.White,
+                imageVector = icon,
+                contentDescription = period.shortForecast,
+                tint = iconColor,
                 modifier = Modifier.size(24.dp)
             )
 
