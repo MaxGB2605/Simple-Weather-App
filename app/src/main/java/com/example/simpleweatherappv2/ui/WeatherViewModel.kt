@@ -19,7 +19,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     val uiState = _uiState.asStateFlow()
 
     init {
-       fetchCurrentLocation() // Loads NYC on startup!
+        fetchCurrentLocation() // Loads NYC on startup!
     }
 
     // Search by City Name
@@ -28,7 +28,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             _uiState.value = _uiState.value.copy(
                 cityName = locationSearch,
                 condition = "Loading...",
-                isLoading = true
+                isLoading = true,
+                error = null
             )
 
             // 1. Get Coordinates from the city name
@@ -50,7 +51,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             _uiState.value = _uiState.value.copy(
                 cityName = "Locating...",
                 condition = "Loading...",
-                isLoading = true
+                isLoading = true,
+                error = null
             )
 
             // 1. Get GPS Location
@@ -83,7 +85,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         if (observation != null && observation.temperature?.value != null) {
             // ... (Same Observation logic as before) ...
             val tempC = observation.temperature.value
-            val tempF = (tempC * 9/5) + 32
+            val tempF = (tempC * 9 / 5) + 32
             val windKmh = observation.windSpeed?.value ?: 0.0
             val windMph = windKmh * 0.621371
 
@@ -116,8 +118,18 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     private fun showError(message: String) {
         _uiState.value = _uiState.value.copy(
-            condition = message,
+            error = message,
             isLoading = false
         )
+    }
+
+    // Simple refresh function
+    fun refreshWeather() {
+        val currentCity = _uiState.value.cityName
+        if (currentCity != "Unknown" && currentCity != "Locating...") {
+            updateWeather(currentCity)
+        } else {
+            fetchCurrentLocation()
+        }
     }
 }

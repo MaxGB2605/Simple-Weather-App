@@ -12,4 +12,6 @@ data class WeatherUiState(
     val dailyForecasts: List<ForecastPeriod> = emptyList(),
 
     val isLoading: Boolean = true,
+    val error: String? = null,
+    val isUsingGps: Boolean = false,
 )
