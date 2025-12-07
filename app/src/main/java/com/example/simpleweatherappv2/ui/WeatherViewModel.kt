@@ -81,6 +81,24 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         // NEW: Get 7-Day Forecast (For the new screen)
         val dailyList = repository.getDailyForecasts(lat, lon) ?: emptyList()
 
+        // NEW: Get Hourly Forecast (For the horizontal list)
+        val fullHourlyList = repository.getHourlyForecasts(lat, lon) ?: emptyList()
+        
+        // Filter: Start from the NEXT hour
+        val now = java.time.ZonedDateTime.now()
+        val hourlyList = fullHourlyList
+            .filter { period ->
+                try {
+                    val periodTime = java.time.ZonedDateTime.parse(period.startTime)
+                    periodTime.isAfter(now)
+                } catch (e: Exception) {
+                    false
+                }
+            }
+            .take(24) // Take next 24 hours
+            
+        android.util.Log.d("WeatherApp", "Hourly List Size: ${hourlyList.size}")
+
         // DECISION LOGIC
         if (observation != null && observation.temperature?.value != null) {
             // ... (Same Observation logic as before) ...
@@ -96,7 +114,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 humidity = "${observation.relativeHumidity?.value?.toInt() ?: 0}%",
                 wind = "${windMph.toInt()} mph",
                 rainChance = "--",
-                dailyForecasts = dailyList, // <--- SAVE THE LIST!
+                dailyForecasts = dailyList,
+                hourlyForecasts = hourlyList, // <--- SAVE THE HOURLY LIST!
                 isLoading = false
             )
         } else if (forecast != null) {
@@ -108,7 +127,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 humidity = "${forecast.relativeHumidity?.value ?: 0}%",
                 wind = "${forecast.windSpeed ?: "--"} ${forecast.windDirection ?: ""}",
                 rainChance = "${forecast.probabilityOfPrecipitation?.value ?: 0}%",
-                dailyForecasts = dailyList, // <--- SAVE THE LIST!
+                dailyForecasts = dailyList,
+                hourlyForecasts = hourlyList, // <--- SAVE THE HOURLY LIST!
                 isLoading = false
             )
         } else {

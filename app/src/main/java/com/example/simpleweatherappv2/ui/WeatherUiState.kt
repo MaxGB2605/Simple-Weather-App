@@ -10,7 +10,7 @@ data class WeatherUiState(
     val wind: String = "-- mph",
     val rainChance: String = "--%",
     val dailyForecasts: List<ForecastPeriod> = emptyList(),
-
+    val hourlyForecasts: List<ForecastPeriod> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
     val isUsingGps: Boolean = false,

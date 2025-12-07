@@ -21,6 +21,7 @@ data class ForecastProperties(
 
 data class ForecastPeriod(
     val name: String,
+    val startTime: String, // ISO 8601: "2023-10-25T14:00:00-04:00"
     val temperature: Double,
     val temperatureUnit: String,
     val shortForecast: String,

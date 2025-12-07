@@ -145,4 +145,23 @@ class WeatherRepository(private val context: Context) {
             return null
         }
     }
+
+    // NEW: Get the Hourly Forecast (List of upcoming hours)
+    suspend fun getHourlyForecasts(lat: Double, lon: Double): List<ForecastPeriod>? {
+        try {
+            // 1. Get Grid Points
+            val pointsResponse = api.getGridPoint(lat, lon)
+            val props = pointsResponse.properties
+
+            // 2. Get the HOURLY Forecast
+            // Note: NWS API usually provides 156 hours (approx 7 days) of hourly data
+            val forecastResponse = api.getHourlyForecast(props.gridId, props.gridX, props.gridY)
+
+            // Return the whole list
+            return forecastResponse.properties.periods
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
+    }
 }

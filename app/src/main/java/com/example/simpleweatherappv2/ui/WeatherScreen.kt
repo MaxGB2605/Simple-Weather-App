@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,6 +46,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.simpleweatherappv2.data.ForecastPeriod
+import com.example.simpleweatherappv2.ui.theme.DeepPurple
+import com.example.simpleweatherappv2.ui.theme.GlassLight
+import com.example.simpleweatherappv2.ui.theme.MidnightBlue
+import com.example.simpleweatherappv2.ui.theme.NeonCyan
+import com.example.simpleweatherappv2.ui.theme.SoftWhite
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 
 @OptIn(ExperimentalMaterial3Api::class) // Use Experimental M3 API
@@ -63,10 +74,7 @@ fun WeatherScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xffd3f637),
-                        Color(0xff070f9c)
-                    )
+                    colors = listOf(MidnightBlue, DeepPurple)
                 )
             )
     ) {
@@ -98,17 +106,19 @@ fun WeatherScreen(
                     TextField(
                         value = cityInput,
                         onValueChange = { cityInput = it },
-                        placeholder = { Text("Enter City", color = Color.Gray) },
+                        placeholder = { Text("Enter City", color = SoftWhite.copy(alpha = 0.6f)) },
                         modifier = Modifier
                             .weight(1f)
-                            .background(Color.White, RoundedCornerShape(24.dp)),
+                            .background(GlassLight, RoundedCornerShape(24.dp)),
                         shape = RoundedCornerShape(24.dp),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = Color.Blue
+                            cursorColor = NeonCyan,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
                         ),
                         singleLine = true
                     )
@@ -122,12 +132,12 @@ fun WeatherScreen(
                             cityInput = ""
                         },
                         modifier = Modifier
-                            .background(Color.White, androidx.compose.foundation.shape.CircleShape)
+                            .background(GlassLight, androidx.compose.foundation.shape.CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.MyLocation,
                             contentDescription = "My Location",
-                            tint = Color(0xFF5CA9F5)
+                            tint = NeonCyan
                         )
                     }
 
@@ -136,9 +146,9 @@ fun WeatherScreen(
                     Button(
                         onClick = { viewModel.updateWeather(cityInput) },
                         shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5CA9F5))
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan)
                     ) {
-                        Text("Search")
+                        Text("Search", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -228,20 +238,37 @@ fun WeatherScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    Button(
-                        onClick = onNavigateToForecast,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.5f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    ) {
-                        Text(
-                            "7-Day Forecast",
-                            color = Color.Blue,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // 4. HOURLY FORECAST (NEW)
+                if (uiState.hourlyForecasts.isNotEmpty()) {
+                    Text(
+                        text = "Hourly Forecast",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = SoftWhite,
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HourlyForecastRow(forecasts = uiState.hourlyForecasts)
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
+
+                Button(
+                    onClick = onNavigateToForecast,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                ) {
+                    Text(
+                        "7-Day Forecast",
+                        color = Color.Blue,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -264,5 +291,58 @@ fun WeatherDetailItem(label: String, value: String) {
             color = Color.Black
         )
     }
+
 }
 
+@Composable
+fun HourlyForecastRow(forecasts: List<ForecastPeriod>) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(forecasts) { period ->
+            HourlyForecastItem(period)
+        }
+    }
+}
+
+@Composable
+fun HourlyForecastItem(period: ForecastPeriod) {
+    val timeLabel = try {
+        val zdt = ZonedDateTime.parse(period.startTime)
+        zdt.format(DateTimeFormatter.ofPattern("h a"))
+    } catch (e: Exception) {
+        ""
+    }
+
+    Card(
+        modifier = Modifier.width(80.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = GlassLight)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = timeLabel, color = SoftWhite, style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.height(8.dp))
+
+// Icon
+            Icon(
+                imageVector = Icons.Default.Cloud, // Or your logic for sun/cloud
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+// Temp
+            Text(
+                text = "${period.temperature.toInt()}°",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+    }
+}
