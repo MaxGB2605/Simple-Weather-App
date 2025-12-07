@@ -43,10 +43,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun WeatherScreen(
     modifier: Modifier = Modifier,
     viewModel: WeatherViewModel = viewModel(),
+    onNavigateToForecast: () -> Unit = {} // New Parameter!
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-    // State for the text field input
     var cityInput by remember { mutableStateOf("") }
 
     Box(
@@ -55,8 +54,8 @@ fun WeatherScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF5CA9F5), // Top: Bright Sky Blue
-                        Color(0xFFFFFFFF)  // Bottom: White
+                        Color(0xFF5CA9F5),
+                        Color(0xFFFFFFFF)
                     )
                 )
             )
@@ -66,24 +65,22 @@ fun WeatherScreen(
                 .fillMaxSize()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            // verticalArrangement = Arrangement.Center // Removed to let things flow naturally
         ) {
 
-            // --- SEARCH ROW (NOW AT TOP) ---
+            // --- SEARCH ROW ---
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 32.dp, bottom = 32.dp) // Added top padding
+                    .padding(top = 32.dp, bottom = 32.dp)
             ) {
-                // Styled Search Field
                 TextField(
                     value = cityInput,
                     onValueChange = { cityInput = it },
                     placeholder = { Text("Enter City", color = Color.Gray) },
                     modifier = Modifier
                         .weight(1f)
-                        .background(Color.White, RoundedCornerShape(24.dp)), // Pill shape
+                        .background(Color.White, RoundedCornerShape(24.dp)),
                     shape = RoundedCornerShape(24.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -100,25 +97,19 @@ fun WeatherScreen(
                 Button(
                     onClick = { viewModel.updateWeather(cityInput) },
                     shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF5CA9F5)
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5CA9F5))
                 ) {
                     Text("Search")
                 }
             }
 
-            // --- LOADING OR WEATHER CONTENT ---
+            // --- CONTENT ---
             if (uiState.isLoading) {
                 Spacer(modifier = Modifier.height(64.dp))
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(64.dp)
-                )
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(64.dp))
             } else {
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Weather Icon
                 Icon(
                     imageVector = Icons.Filled.WbSunny,
                     contentDescription = "Sunny",
@@ -126,7 +117,6 @@ fun WeatherScreen(
                     modifier = Modifier.size(100.dp)
                 )
 
-                // City Name
                 Text(
                     text = uiState.cityName,
                     style = MaterialTheme.typography.headlineMedium,
@@ -136,7 +126,6 @@ fun WeatherScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Temperature
                 Text(
                     text = uiState.temperature,
                     style = MaterialTheme.typography.displayLarge,
@@ -144,32 +133,40 @@ fun WeatherScreen(
                     color = Color.White
                 )
 
-                // Condition
                 Text(
                     text = uiState.condition,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Details Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.3f))
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         WeatherDetailItem(label = "Humidity", value = uiState.humidity)
                         WeatherDetailItem(label = "Wind", value = uiState.wind)
                         WeatherDetailItem(label = "Rain", value = uiState.rainChance)
                     }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // --- NEW 7-DAY FORECAST BUTTON ---
+                Button(
+                    onClick = onNavigateToForecast,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Text("7-Day Forecast", color = Color(0xFF5CA9F5), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -179,16 +176,7 @@ fun WeatherScreen(
 @Composable
 fun WeatherDetailItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.8f)
-        )
+        Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(text = label, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f))
     }
 }

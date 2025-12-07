@@ -62,7 +62,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
 
     // https://mvnrepository.com/artifact/androidx.lifecycle/lifecycle-viewmodel-compose
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // Retrofit & Networking
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
@@ -71,4 +71,7 @@ dependencies {
 
     // Location Services
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.8.5")
 }

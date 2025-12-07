@@ -1,7 +1,5 @@
 package com.example.simpleweatherappv2.data
 
-import com.google.gson.annotations.SerializedName
-
 data class PointsResponse(
     val properties: PointsProperties,
 )
@@ -23,7 +21,7 @@ data class ForecastProperties(
 
 data class ForecastPeriod(
     val name: String,
-    val temperature: Int,
+    val temperature: Double,
     val temperatureUnit: String,
     val shortForecast: String,
     val detailedForecast: String,
@@ -34,5 +32,33 @@ data class ForecastPeriod(
 )
 
 data class ForecastUnitValue(
-    val value: Int?,
+    val value: Double?,
+)
+
+// --- STATION & OBSERVATION MODELS ---
+
+data class StationsResponse(
+    val features: List<StationFeature>
+)
+
+data class StationFeature(
+    val properties: StationProperties
+)
+
+data class StationProperties(
+    val stationIdentifier: String, // e.g., "KJFK"
+    val name: String
+)
+
+data class ObservationResponse(
+    val properties: ObservationProperties
+)
+
+data class ObservationProperties(
+    val textDescription: String?, // "Clear", "Partly Cloudy"
+    val temperature: ForecastUnitValue?,
+    val relativeHumidity: ForecastUnitValue?,
+    val windSpeed: ForecastUnitValue?,
+    val windDirection: ForecastUnitValue?,
+    val probabilityOfPrecipitation: ForecastUnitValue? = null // Usually null for observations, but good to have
 )

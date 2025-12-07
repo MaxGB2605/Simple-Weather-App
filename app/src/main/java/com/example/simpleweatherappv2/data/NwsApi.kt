@@ -19,4 +19,26 @@ interface NwsApi {
         @Path("gridX") gridX: Int,
         @Path("gridY") gridY: Int
     ): ForecastResponse
+
+    // Step 3: Get HOURLY forecast (more accurate for current conditions)
+    @GET("gridpoints/{gridId}/{gridX},{gridY}/forecast/hourly")
+    suspend fun getHourlyForecast(
+        @Path("gridId") gridId: String,
+        @Path("gridX") gridX: Int,
+        @Path("gridY") gridY: Int
+    ): ForecastResponse
+
+    // Step 4: Get list of weather stations for this grid
+    @GET("gridpoints/{gridId}/{gridX},{gridY}/stations")
+    suspend fun getStations(
+        @Path("gridId") gridId: String,
+        @Path("gridX") gridX: Int,
+        @Path("gridY") gridY: Int
+    ): StationsResponse
+
+    // Step 5: Get the latest observation from a specific station
+    @GET("stations/{stationId}/observations/latest")
+    suspend fun getObservation(
+        @Path("stationId") stationId: String
+    ): ObservationResponse
 }
