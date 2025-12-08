@@ -51,12 +51,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.simpleweatherappv2.data.ForecastPeriod
-import com.example.simpleweatherappv2.ui.theme.DeepPurple
-import com.example.simpleweatherappv2.ui.theme.GlassLight
-import com.example.simpleweatherappv2.ui.theme.GoldenSun
-import com.example.simpleweatherappv2.ui.theme.MidnightBlue
-import com.example.simpleweatherappv2.ui.theme.NeonCyan
+import com.example.simpleweatherappv2.ui.theme.AccentCyan
+import com.example.simpleweatherappv2.ui.theme.AccentYellow
+import com.example.simpleweatherappv2.ui.theme.GlassCard
 import com.example.simpleweatherappv2.ui.theme.SoftWhite
+import com.example.simpleweatherappv2.ui.theme.WeatherBlue
+import com.example.simpleweatherappv2.ui.theme.WeatherBlueDark
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -79,7 +79,7 @@ fun WeatherScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(MidnightBlue, DeepPurple)
+                    colors = listOf(WeatherBlue, WeatherBlueDark)
                 )
             )
     ) {
@@ -114,14 +114,14 @@ fun WeatherScreen(
                         placeholder = { Text("Enter City", color = SoftWhite.copy(alpha = 0.6f)) },
                         modifier = Modifier
                             .weight(1f)
-                            .background(GlassLight, RoundedCornerShape(24.dp)),
+                            .background(GlassCard, RoundedCornerShape(24.dp)),
                         shape = RoundedCornerShape(24.dp),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = NeonCyan,
+                            cursorColor = AccentCyan,
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White
                         ),
@@ -137,12 +137,12 @@ fun WeatherScreen(
                             cityInput = ""
                         },
                         modifier = Modifier
-                            .background(GlassLight, androidx.compose.foundation.shape.CircleShape)
+                            .background(GlassCard, androidx.compose.foundation.shape.CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.MyLocation,
                             contentDescription = "My Location",
-                            tint = NeonCyan
+                            tint = AccentCyan
                         )
                     }
 
@@ -151,7 +151,7 @@ fun WeatherScreen(
                     Button(
                         onClick = { viewModel.updateWeather(cityInput) },
                         shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan)
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
                     ) {
                         Text("Search", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
@@ -227,17 +227,30 @@ fun WeatherScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f))
+                        colors = CardDefaults.cardColors(containerColor = GlassCard)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            WeatherDetailItem(label = "Humidity", value = uiState.humidity)
-                            WeatherDetailItem(label = "Wind", value = uiState.wind)
-                            WeatherDetailItem(label = "Rain", value = uiState.rainChance)
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            // First Row: Humidity, Wind, Rain
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                WeatherDetailItem(label = "Humidity", value = uiState.humidity)
+                                WeatherDetailItem(label = "Wind", value = uiState.wind)
+                                WeatherDetailItem(label = "Rain", value = uiState.rainChance)
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Second Row: Feels Like, Pressure
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                WeatherDetailItem(label = "Feels Like", value = uiState.feelsLike)
+                                WeatherDetailItem(label = "Pressure", value = uiState.pressure)
+                                Spacer(modifier = Modifier.weight(1f)) // Empty space for alignment
+                            }
                         }
                     }
 
@@ -264,14 +277,14 @@ fun WeatherScreen(
                 Button(
                     onClick = onNavigateToForecast,
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.buttonColors(containerColor = GlassCard),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
                     Text(
                         "7-Day Forecast",
-                        color = Color.Blue,
+                        color = AccentCyan,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -288,12 +301,12 @@ fun WeatherDetailItem(label: String, value: String) {
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.Blue
+            color = AccentCyan
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.Black
+            color = SoftWhite
         )
     }
 
@@ -322,7 +335,7 @@ fun HourlyForecastItem(period: ForecastPeriod) {
     Card(
         modifier = Modifier.width(80.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = GlassLight)
+        colors = CardDefaults.cardColors(containerColor = GlassCard)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -337,7 +350,7 @@ fun HourlyForecastItem(period: ForecastPeriod) {
                     "Sunny",
                     ignoreCase = true
                 ) || period.shortForecast.contains("Clear", ignoreCase = true) ->
-                    Icons.Default.WbSunny to GoldenSun
+                    Icons.Default.WbSunny to AccentYellow
 
                 period.shortForecast.contains(
                     "Rain",
@@ -345,7 +358,7 @@ fun HourlyForecastItem(period: ForecastPeriod) {
                 ) || period.shortForecast.contains(
                     "Shower",
                     ignoreCase = true
-                ) -> Icons.Default.WaterDrop to NeonCyan
+                ) -> Icons.Default.WaterDrop to AccentCyan
 
                 period.shortForecast.contains(
                     "Thunder",

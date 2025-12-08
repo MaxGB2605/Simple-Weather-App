@@ -22,6 +22,7 @@ data class ForecastProperties(
 data class ForecastPeriod(
     val name: String,
     val startTime: String, // ISO 8601: "2023-10-25T14:00:00-04:00"
+    val isDaytime: Boolean = true, // NEW: Distinguishes day vs night periods
     val temperature: Double,
     val temperatureUnit: String,
     val shortForecast: String,
@@ -56,10 +57,13 @@ data class ObservationResponse(
 )
 
 data class ObservationProperties(
-    val textDescription: String?, // "Clear", "Partly Cloudy"
+    val textDescription: String?,
     val temperature: ForecastUnitValue?,
     val relativeHumidity: ForecastUnitValue?,
     val windSpeed: ForecastUnitValue?,
     val windDirection: ForecastUnitValue?,
-    val probabilityOfPrecipitation: ForecastUnitValue? = null // Usually null for observations, but good to have
+    val heatIndex: ForecastUnitValue?,        // ADD THIS
+    val windChill: ForecastUnitValue?,        // ADD THIS
+    val barometricPressure: ForecastUnitValue?, // ADD THIS
+    val probabilityOfPrecipitation: ForecastUnitValue? = null
 )

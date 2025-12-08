@@ -8,15 +8,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Thunderstorm
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -35,6 +40,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.simpleweatherappv2.data.ForecastPeriod
+import com.example.simpleweatherappv2.ui.theme.AccentCyan
+import com.example.simpleweatherappv2.ui.theme.AccentYellow
+import com.example.simpleweatherappv2.ui.theme.GlassCard
+import com.example.simpleweatherappv2.ui.theme.SoftWhite
+import com.example.simpleweatherappv2.ui.theme.TextSecondary
+import com.example.simpleweatherappv2.ui.theme.WeatherBlue
+import com.example.simpleweatherappv2.ui.theme.WeatherBlueDark
 
 @Composable
 fun ForecastScreen(
@@ -48,10 +60,7 @@ fun ForecastScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xffd3f637),
-                        Color(0xff070f9c)
-                    )
+                    colors = listOf(WeatherBlue, WeatherBlueDark)
                 )
             )
     ) {
@@ -62,21 +71,24 @@ fun ForecastScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBack) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.background(GlassCard, CircleShape)
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = SoftWhite
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "7-Day Forecast",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White,
+                    color = SoftWhite,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -85,7 +97,7 @@ fun ForecastScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(uiState.dailyForecasts) { period ->
                     ForecastItem(period)
@@ -100,7 +112,7 @@ fun ForecastItem(period: ForecastPeriod) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f))
+        colors = CardDefaults.cardColors(containerColor = GlassCard)
     ) {
         Row(
             modifier = Modifier
@@ -112,39 +124,57 @@ fun ForecastItem(period: ForecastPeriod) {
             // Left: Name & Short Desc
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = period.name, // e.g., "Tuesday Night"
+                    text = period.name,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = SoftWhite
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = period.shortForecast,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    color = TextSecondary
                 )
             }
 
+            Spacer(modifier = Modifier.width(12.dp))
+
             // Right: Temp & Icon
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Weather Icon with improved logic
+                val (icon, iconColor) = when {
+                    period.shortForecast.contains("Sunny", ignoreCase = true) ||
+                    period.shortForecast.contains("Clear", ignoreCase = true) ->
+                        Icons.Default.WbSunny to AccentYellow
+
+                    period.shortForecast.contains("Rain", ignoreCase = true) ||
+                    period.shortForecast.contains("Shower", ignoreCase = true) ->
+                        Icons.Default.WaterDrop to AccentCyan
+
+                    period.shortForecast.contains("Thunder", ignoreCase = true) ||
+                    period.shortForecast.contains("Storm", ignoreCase = true) ->
+                        Icons.Default.Thunderstorm to Color(0xFFFFD700)
+
+                    period.shortForecast.contains("Snow", ignoreCase = true) ->
+                        Icons.Default.AcUnit to Color.White
+
+                    else -> Icons.Default.Cloud to Color.Gray
+                }
+
+                Icon(
+                    imageVector = icon,
+                    contentDescription = period.shortForecast,
+                    tint = iconColor,
+                    modifier = Modifier.size(32.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
                 Text(
                     text = "${period.temperature}°",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (period.temperature > 80) Color(0xFFFF9800) else Color(0xFF5CA9F5)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // Simple Icon Logic (You can improve this later!)
-                val icon = if (period.shortForecast.contains("Sunny") || period.shortForecast.contains("Clear")) {
-                    Icons.Default.WbSunny
-                } else {
-                    Icons.Default.Cloud
-                }
-                
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (icon == Icons.Default.WbSunny) Color(0xFFFFC107) else Color.Gray,
-                    modifier = Modifier.size(32.dp)
+                    color = if (period.temperature > 80) Color(0xFFFF9800) else AccentCyan
                 )
             }
         }
