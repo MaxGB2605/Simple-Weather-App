@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Thunderstorm
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -350,7 +351,8 @@ fun HourlyForecastItem(period: ForecastPeriod) {
                     "Sunny",
                     ignoreCase = true
                 ) || period.shortForecast.contains("Clear", ignoreCase = true) ->
-                    Icons.Default.WbSunny to AccentYellow
+                    if (period.isDaytime) Icons.Default.WbSunny to AccentYellow
+                    else Icons.Default.Nightlight to Color(0xFFB0C4DE) // Moon icon with light steel blue color
 
                 period.shortForecast.contains(
                     "Rain",
