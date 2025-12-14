@@ -149,7 +149,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 condition = observation.textDescription ?: "Unknown",
                 humidity = "${observation.relativeHumidity?.value?.toInt() ?: 0}%",
                 wind = "${windMph.toInt()} mph",
-                rainChance = "--",
+                rainChance = "${forecast?.probabilityOfPrecipitation?.value?.toInt() ?: 0}%",
                 feelsLike = "${feelsLikeF.toInt()}°F",
                 pressure = "${pressureMb.toInt()} mb",
                 highTemp = todayHigh,
