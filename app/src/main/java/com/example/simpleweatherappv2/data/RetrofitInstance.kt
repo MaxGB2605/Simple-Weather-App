@@ -8,6 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitInstance {
 
     private const val BASE_URL = "https://api.weather.gov/"
+    private const val WEATHER_API_BASE_URL = "https://api.weatherapi.com/v1/"
 
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -30,5 +31,14 @@ object RetrofitInstance {
             .client(client)
             .build()
             .create(NwsApi::class.java)
+    }
+
+    val weatherApi: WeatherApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(WEATHER_API_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(client)
+            .build()
+            .create(WeatherApiService::class.java)
     }
 }

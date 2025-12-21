@@ -15,6 +15,8 @@ import kotlin.coroutines.suspendCoroutine
 class WeatherRepository(private val context: Context) {
 
     private val api = RetrofitInstance.api
+    private val weatherApi = RetrofitInstance.weatherApi
+    private val API_KEY = "f7ce63eeaaa248079d7143947250604"
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
     // NEW: Get Current GPS Location
@@ -162,6 +164,42 @@ class WeatherRepository(private val context: Context) {
         } catch (e: Exception) {
             e.printStackTrace()
             return null
+        }
+    }
+    // NEW: Get TimeZone for a location
+    suspend fun getTimeZone(lat: Double, lon: Double): String {
+        return try {
+            val pointsResponse = api.getGridPoint(lat, lon)
+            pointsResponse.properties.timeZone ?: "America/New_York"
+        } catch (e: Exception) {
+            "America/New_York"
+        }
+    }
+
+
+    // NEW: Fetch from WeatherAPI.com (All-in-one)
+    suspend fun getWeatherApiForecast(lat: Double, lon: Double): WeatherApiResponse? {
+        return try {
+            weatherApi.getForecast(
+                apiKey = API_KEY,
+                query = "$lat,$lon"
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    // NEW: Overload for City Name Search
+    suspend fun getWeatherApiForecast(city: String): WeatherApiResponse? {
+        return try {
+            weatherApi.getForecast(
+                apiKey = API_KEY,
+                query = city
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }

@@ -37,4 +37,14 @@ data class WeatherUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val isUsingGps: Boolean = false,
+    val isDaytime: Boolean = true,
+    
+    // Settings
+    val isDarkTheme: Boolean = true,
+    val tempUnit: String = "°F", // "°F" or "°C"
+    val speedUnit: String = "mph", // "mph" or "km/h"
+    val dataSource: String = "WeatherAPI", // "WeatherAPI" or "NWS"
+    
+    // Favorites
+    val favorites: List<String> = emptyList()
 )

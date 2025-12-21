@@ -1,6 +1,7 @@
 package com.example.simpleweatherappv2.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Thunderstorm
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbSunny
@@ -59,13 +61,44 @@ import com.example.simpleweatherappv2.ui.theme.AccentCyan
 import com.example.simpleweatherappv2.ui.theme.AccentYellow
 import com.example.simpleweatherappv2.ui.theme.GlassCard
 import com.example.simpleweatherappv2.ui.theme.SoftWhite
-import com.example.simpleweatherappv2.ui.theme.WeatherBlue
-import com.example.simpleweatherappv2.ui.theme.WeatherBlueDark
+import com.example.simpleweatherappv2.ui.theme.TextSecondary
+import com.example.simpleweatherappv2.ui.theme.NightBlue
+import com.example.simpleweatherappv2.ui.theme.NightPurple
+import com.example.simpleweatherappv2.ui.theme.DayBlue
+import com.example.simpleweatherappv2.ui.theme.DayBlueDark
 import androidx.compose.ui.text.style.TextAlign
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 // --- Top-level Composable Functions ---
+
+@Composable
+fun TemperatureRangeBar(
+    low: Int,
+    high: Int,
+    current: Int? = null,
+    modifier: Modifier = Modifier
+) {
+    val totalRange = 100 // Assume 0-100 range for the bar width context or similar
+    val barColor = Color.White.copy(alpha = 0.2f)
+    val accentColor = Brush.horizontalGradient(listOf(AccentCyan, AccentYellow))
+
+    Box(
+        modifier = modifier
+            .height(4.dp)
+            .fillMaxWidth()
+            .background(barColor, RoundedCornerShape(2.dp))
+    ) {
+        // Highlighting the range (simplified for now)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.6f) // Just a visual placeholder for the range
+                .fillMaxHeight()
+                .align(Alignment.Center)
+                .background(accentColor, RoundedCornerShape(2.dp))
+        )
+    }
+}
 
 @Composable
 fun WeatherStatsGrid(
@@ -79,8 +112,8 @@ fun WeatherStatsGrid(
         modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Max)
-            .padding(vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         WeatherStatCard(
             icon = Icons.Default.WaterDrop,
@@ -177,20 +210,22 @@ fun WeatherStatCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = GlassCard)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = GlassCard),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f))
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = AccentCyan,
-                modifier = Modifier.size(24.dp)
+                tint = AccentCyan.copy(alpha = 0.8f),
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
@@ -200,7 +235,7 @@ fun WeatherStatCard(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = SoftWhite
+                color = SoftWhite.copy(alpha = 0.7f)
             )
         }
     }
@@ -211,22 +246,56 @@ fun WeatherDetailItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = AccentCyan
+            color = Color.White
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = SoftWhite
+            color = SoftWhite.copy(alpha = 0.7f)
         )
+    }
+}
+
+@Composable
+fun WeatherGridItem(
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = AccentCyan.copy(alpha = 0.8f),
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = SoftWhite
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary
+            )
+        }
     }
 }
 
 @Composable
 fun HourlyForecastSection(
     forecasts: List<ForecastPeriod>,
-    onDetailsClick: () -> Unit = {} // Placeholder for future navigation
+    onDetailsClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // Section Header
@@ -272,6 +341,8 @@ fun WeatherScreen(
     modifier: Modifier = Modifier,
     viewModel: WeatherViewModel = viewModel(),
     onNavigateToForecast: () -> Unit = {},
+    onNavigateToHourly: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var cityInput by remember { mutableStateOf("") }
@@ -284,7 +355,11 @@ fun WeatherScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(WeatherBlue, WeatherBlueDark)
+                    colors = if (uiState.isDarkTheme) {
+                        listOf(NightBlue, NightPurple)
+                    } else {
+                        listOf(DayBlue, DayBlueDark)
+                    }
                 )
             )
     ) {
@@ -311,7 +386,7 @@ fun WeatherScreen(
                     cityName = uiState.cityName,
                     currentDate = uiState.currentDate,
                     onLocationClick = { showLocationDialog = true },
-                    onSettingsClick = { /* TODO: Navigate to settings */ }
+                    onSettingsClick = onNavigateToSettings
                 )
 
 
@@ -354,7 +429,7 @@ fun WeatherScreen(
                         condition = uiState.condition,
                         highTemp = uiState.highTemp,
                         lowTemp = uiState.lowTemp,
-                        isDaytime = true
+                        isDaytime = uiState.isDaytime
                     )
 
                     // Determine Precip Type
@@ -375,7 +450,10 @@ fun WeatherScreen(
                     // 4. HOURLY FORECAST (NEW)
                     // 4. HOURLY FORECAST (NEW STYLE)
                     if (uiState.hourlyForecasts.isNotEmpty()) {
-                        HourlyForecastSection(forecasts = uiState.hourlyForecasts)
+                        HourlyForecastSection(
+                            forecasts = uiState.hourlyForecasts,
+                            onDetailsClick = onNavigateToHourly
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
@@ -513,27 +591,35 @@ fun HourlyForecastItem(period: ForecastPeriod) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            androidx.compose.material3.IconButton(onClick = onLocationClick) {
-                Icon(
-                    imageVector = Icons.Default.MyLocation,
-                    contentDescription = "Change Location",
-                    tint = AccentCyan,
-                )
-            }
+            Spacer(modifier = Modifier.width(48.dp)) // Equalizer spacer for center alignment
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onLocationClick)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = cityName,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 )
-                Text(
-                    text = currentDate,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SoftWhite,
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.MyLocation,
+                    contentDescription = null,
+                    tint = AccentCyan,
+                    modifier = Modifier.size(16.dp)
                 )
             }
+            Text(
+                text = currentDate,
+                style = MaterialTheme.typography.bodySmall,
+                color = SoftWhite,
+            )
+        }
 
             androidx.compose.material3.IconButton(onClick = onSettingsClick) {
                 Icon(
@@ -714,10 +800,17 @@ fun DailyForecastInlineItem(period: ForecastPeriod) {
         )
         
         Spacer(modifier = Modifier.width(16.dp))
+
+        // Range Bar (Placeholder)
+        TemperatureRangeBar(
+            low = 0, // Placeholder
+            high = 100, // Placeholder
+            modifier = Modifier.weight(1f).padding(horizontal = 12.dp)
+        )
         
         // Temperature
         Text(
-            text = "${period.temperature}°",
+            text = "${period.temperature.toInt()}°",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = Color.White

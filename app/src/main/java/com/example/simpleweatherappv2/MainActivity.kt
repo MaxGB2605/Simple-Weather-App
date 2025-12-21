@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.simpleweatherappv2.ui.ForecastScreen
+import com.example.simpleweatherappv2.ui.HourlyForecastScreen
+import com.example.simpleweatherappv2.ui.SettingsScreen
 import com.example.simpleweatherappv2.ui.WeatherScreen
 import com.example.simpleweatherappv2.ui.WeatherViewModel
 import com.example.simpleweatherappv2.ui.theme.SimpleWeatherAppV2Theme
@@ -24,7 +28,9 @@ import com.example.simpleweatherappv2.ui.theme.SimpleWeatherAppV2Theme
 // Define our screens
 enum class AppScreen {
     Today,
-    Forecast
+    Forecast,
+    HourlyForecast,
+    Settings
 }
 
 class MainActivity : ComponentActivity() {
@@ -32,8 +38,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SimpleWeatherAppV2Theme {
-                val viewModel: WeatherViewModel = viewModel()
+            val viewModel: WeatherViewModel = viewModel()
+            val uiState by viewModel.uiState.collectAsState()
+            
+            SimpleWeatherAppV2Theme(darkTheme = uiState.isDarkTheme) {
+                // val viewModel: WeatherViewModel = viewModel() // MOVED UP
                 val navController = rememberNavController()
 
                 // Permission Logic
@@ -64,7 +73,9 @@ class MainActivity : ComponentActivity() {
                         composable(AppScreen.Today.name) {
                             WeatherScreen(
                                 viewModel = viewModel,
-                                onNavigateToForecast = { navController.navigate(AppScreen.Forecast.name) }
+                                onNavigateToForecast = { navController.navigate(AppScreen.Forecast.name) },
+                                onNavigateToHourly = { navController.navigate(AppScreen.HourlyForecast.name) },
+                                onNavigateToSettings = { navController.navigate(AppScreen.Settings.name) }
                             )
                         }
 
@@ -73,6 +84,22 @@ class MainActivity : ComponentActivity() {
                             ForecastScreen(
                                 viewModel = viewModel,
                                 onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        // Screen 3: Hourly Forecast
+                        composable(AppScreen.HourlyForecast.name) {
+                            HourlyForecastScreen(
+                                viewModel = viewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        // Screen 3: Settings
+                        composable(AppScreen.Settings.name) {
+                            SettingsScreen(
+                                onBack = { navController.popBackStack() },
+                                viewModel = viewModel
                             )
                         }
                     }

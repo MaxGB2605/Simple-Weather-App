@@ -12,12 +12,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+// Dark Scheme (Night)
 private val DarkColorScheme = darkColorScheme(
     primary = NeonCyan,
     secondary = GoldenSun,
-    tertiary = DeepPurple,
-    background = MidnightBlue,
-    surface = DeepPurple,
+    tertiary = NightPurple,
+    background = NightBlue,
+    surface = NightPurple,
     onPrimary = Color.Black,
     onSecondary = Color.Black,
     onTertiary = Color.White,
@@ -25,8 +26,19 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = Color.White
 )
 
-// We use the same for Light for now (Enforcing Dark Mode look)
-private val LightColorScheme = DarkColorScheme
+// Light Scheme (Day)
+private val LightColorScheme = lightColorScheme(
+    primary = DayBlue,
+    secondary = DayBlueMid,
+    tertiary = DayBlue,
+    background = Color.White, 
+    surface = Color.White,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = TextDark,
+    onSurface = TextDark
+)
 
 @Composable
 fun SimpleWeatherAppV2Theme(
