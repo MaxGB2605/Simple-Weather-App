@@ -361,20 +361,22 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         val isMetricSpeed = speedUnit == "km/h"
         
         val hourlyList = ArrayList<ForecastPeriod>()
-        // Use the location's local time epoch for accurate filtering, 
-        // rounded down to the start of the hour to include the current hour.
-        val currentLocalEpoch = data.location.localtimeEpoch
-        val currentHourStartEpoch = currentLocalEpoch - (currentLocalEpoch % 3600)
-        
         val allHours = data.forecast.forecastDay.flatMap { it.hour }
+        val zoneId = try { ZoneId.of(data.location.tzId) } catch (e: Exception) { ZoneId.systemDefault() }
         
         allHours.forEach { hour ->
-            if (hour.timeEpoch >= currentHourStartEpoch) {
+            // Filter to show only future hours, matching the NWS "Upcoming" behavior
+            if (hour.timeEpoch > data.location.localtimeEpoch) {
+                // Formatting time with the location's actual zone ID so labels match city local time
+                val zdt = java.time.ZonedDateTime.ofInstant(
+                    java.time.Instant.ofEpochSecond(hour.timeEpoch), 
+                    zoneId
+                )
+                
                 hourlyList.add(
                     ForecastPeriod(
                         name = "",
-                        startTime = java.time.format.DateTimeFormatter.ISO_INSTANT
-                            .format(java.time.Instant.ofEpochSecond(hour.timeEpoch)),
+                        startTime = zdt.toString(),
                         temperature = if (isMetricTemp) hour.tempC else hour.tempF,
                         temperatureUnit = tempUnit.replace("°", ""),
                         windSpeed = "${(if (isMetricSpeed) hour.windKph else hour.windMph).toInt()} $speedUnit",
