@@ -7,6 +7,8 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -22,29 +24,46 @@ class WeatherRepository(private val context: Context) {
     // NEW: Get Current GPS Location
     @SuppressLint("MissingPermission") // We will check permission in the UI before calling this
     suspend fun getCurrentLocation(): Pair<Double, Double>? = suspendCoroutine { continuation ->
-        // Check if we actually have permission
-        val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        try {
+            // Check if we actually have permission
+            val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
-        if (!hasFine && !hasCoarse) {
-            continuation.resume(null)
-            return@suspendCoroutine
-        }
+            if (!hasFine && !hasCoarse) {
+                continuation.resume(null)
+                return@suspendCoroutine
+            }
 
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location ->
-                if (location != null) {
-                    continuation.resume(Pair(location.latitude, location.longitude))
-                } else {
-                    continuation.resume(null)
+            // Determine priority based on permission
+            val priority = if (hasFine) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY
+
+            // Request a FRESH location fix
+            val cts = CancellationTokenSource()
+            fusedLocationClient.getCurrentLocation(priority, cts.token)
+                .addOnSuccessListener { location ->
+                    if (location != null) {
+                        continuation.resume(Pair(location.latitude, location.longitude))
+                    } else {
+                        // Fallback to last known if fresh fix fails
+                        fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
+                            continuation.resume(lastLoc?.let { Pair(it.latitude, it.longitude) })
+                        }.addOnFailureListener {
+                            continuation.resume(null)
+                        }
+                    }
                 }
-            }
-            .addOnFailureListener {
-                continuation.resume(null)
-            }
-            .addOnCanceledListener {
-                continuation.resume(null)
-            }
+                .addOnFailureListener {
+                    // Fallback to last known on error
+                    fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
+                        continuation.resume(lastLoc?.let { Pair(it.latitude, it.longitude) })
+                    }.addOnFailureListener {
+                        continuation.resume(null)
+                    }
+                }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            continuation.resume(null)
+        }
     }
 
     // Turn "City Name" into (Lat, Lon)
