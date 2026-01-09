@@ -9,9 +9,13 @@ import com.example.simpleweatherappv2.data.ForecastPeriod
 import com.example.simpleweatherappv2.utils.SunCalc
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.example.simpleweatherappv2.data.WeatherDatabase
+import com.example.simpleweatherappv2.data.FavoriteLocation
+import com.example.simpleweatherappv2.data.FavoriteDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
@@ -21,7 +25,17 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(WeatherUiState())
     val uiState = _uiState.asStateFlow()
 
+    private val favoriteDao = WeatherDatabase.getDatabase(application).favoriteDao()
+
     init {
+        // Observe Favorites from Database
+        viewModelScope.launch {
+            favoriteDao.getAllFavorites().collectLatest { locations ->
+                _uiState.value = _uiState.value.copy(
+                    favorites = locations.map { it.cityName }
+                )
+            }
+        }
         fetchCurrentLocation()
     }
 
@@ -30,7 +44,6 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private var tempUnit = "°F" // "°F" or "°C"
     private var speedUnit = "mph" // "mph" or "km/h"
     private var weatherProvider = "WeatherAPI" // "WeatherAPI" or "NWS"
-    private var favoriteLocations = mutableListOf("San Francisco, CA", "New York, NY", "London, UK")
 
     // --- DATA CACHE ---
     private var lastWeatherApiData: WeatherApiResponse? = null
@@ -69,15 +82,26 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
     
     fun addFavorite(location: String) {
-        if (!favoriteLocations.contains(location)) {
-            favoriteLocations.add(location)
-            refreshUiState() // Trigger UI update
+        viewModelScope.launch(Dispatchers.IO) {
+            favoriteDao.insert(FavoriteLocation(location))
         }
     }
     
     fun removeFavorite(location: String) {
-        if (favoriteLocations.remove(location)) {
-            refreshUiState()
+        viewModelScope.launch(Dispatchers.IO) {
+            favoriteDao.delete(FavoriteLocation(location))
+        }
+    }
+
+    fun toggleFavorite(location: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Since we need to know the state to toggle, we could check DB or UI state. 
+            // Using UI state for simplicity as it's kept in sync.
+            if (_uiState.value.favorites.contains(location)) {
+                favoriteDao.delete(FavoriteLocation(location))
+            } else {
+                favoriteDao.insert(FavoriteLocation(location))
+            }
         }
     }
     
@@ -86,8 +110,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             isDarkTheme = isDarkTheme,
             tempUnit = tempUnit,
             speedUnit = speedUnit,
-            dataSource = weatherProvider,
-            favorites = ArrayList(favoriteLocations)
+            dataSource = weatherProvider
         )
     }
 
@@ -243,7 +266,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             val pressurePa = observation.barometricPressure?.value ?: 0.0
             val pressureMb = pressurePa / 100
 
-            _uiState.value = WeatherUiState(
+            _uiState.value = _uiState.value.copy(
                 cityName = city,
                 temperature = tempDisplay,
                 condition = observation.textDescription ?: "Unknown",
@@ -271,15 +294,14 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 isDarkTheme = isDarkTheme,
                 tempUnit = tempUnit,
                 speedUnit = speedUnit,
-                dataSource = weatherProvider,
-                favorites = ArrayList(favoriteLocations)
+                dataSource = weatherProvider
             )
         } else if (forecast != null) {
             val tempF = forecast.temperature
             val tempDisplay = if (isMetricTemp) "${((tempF - 32) * 5/9).toInt()}°C" else "${tempF.toInt()}°F"
             val windDisplay = forecast.windSpeed ?: "--"
             
-            _uiState.value = WeatherUiState(
+            _uiState.value = _uiState.value.copy(
                 cityName = city,
                 temperature = tempDisplay,
                 condition = forecast.shortForecast,
@@ -307,8 +329,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 isDarkTheme = isDarkTheme,
                 tempUnit = tempUnit,
                 speedUnit = speedUnit,
-                dataSource = weatherProvider,
-                favorites = ArrayList(favoriteLocations)
+                dataSource = weatherProvider
             )
         } else {
             showError("Weather data unavailable")
@@ -340,11 +361,15 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         val isMetricSpeed = speedUnit == "km/h"
         
         val hourlyList = ArrayList<ForecastPeriod>()
-        val currentEpoch = System.currentTimeMillis() / 1000
+        // Use the location's local time epoch for accurate filtering, 
+        // rounded down to the start of the hour to include the current hour.
+        val currentLocalEpoch = data.location.localtimeEpoch
+        val currentHourStartEpoch = currentLocalEpoch - (currentLocalEpoch % 3600)
+        
         val allHours = data.forecast.forecastDay.flatMap { it.hour }
         
         allHours.forEach { hour ->
-            if (hour.timeEpoch >= currentEpoch) {
+            if (hour.timeEpoch >= currentHourStartEpoch) {
                 hourlyList.add(
                     ForecastPeriod(
                         name = "",
@@ -413,7 +438,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         val highTempVal = if (isMetricTemp) forecastDay?.day?.maxTempC else forecastDay?.day?.maxTempF
         val lowTempVal = if (isMetricTemp) forecastDay?.day?.minTempC else forecastDay?.day?.minTempF
 
-        _uiState.value = WeatherUiState(
+        _uiState.value = _uiState.value.copy(
             cityName = "${data.location.name}, ${data.location.region}",
             temperature = "${tempVal.toInt()}$tempUnit",
             condition = current.condition.text,
@@ -441,8 +466,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             isDarkTheme = isDarkTheme,
             tempUnit = tempUnit,
             speedUnit = speedUnit,
-            dataSource = weatherProvider,
-            favorites = ArrayList(favoriteLocations)
+            dataSource = weatherProvider
         )
     }
 }

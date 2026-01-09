@@ -2,27 +2,60 @@ package com.example.simpleweatherappv2.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.simpleweatherappv2.ui.theme.*
+import com.example.simpleweatherappv2.ui.theme.DayBlue
+import com.example.simpleweatherappv2.ui.theme.DayBlueDark
+import com.example.simpleweatherappv2.ui.theme.NightBlue
+import com.example.simpleweatherappv2.ui.theme.NightPurple
+import com.example.simpleweatherappv2.ui.theme.StatusDanger
+import com.example.simpleweatherappv2.ui.theme.TextDark
+import com.example.simpleweatherappv2.ui.theme.TextMuted
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +73,8 @@ fun SettingsScreen(
     
     // Favorites from ViewModel
     val favorites = uiState.favorites
+    
+    var showAddFavoriteDialog by remember { mutableStateOf(false) }
 
     // Theme Logic
     val backgroundColorStart = if (isDarkTheme) NightBlue else DayBlue
@@ -209,6 +244,10 @@ fun SettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clickable { 
+                                    viewModel.updateWeather(location)
+                                    onBack()
+                                }
                                 .padding(vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -226,14 +265,14 @@ fun SettingsScreen(
                             }
                         }
                         if (location != favorites.last()) {
-                            Divider(color = contentColor.copy(alpha = 0.1f))
+                            HorizontalDivider(color = contentColor.copy(alpha = 0.1f))
                         }
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Button(
-                        onClick = { /* TODO: Add Location Logic */ },
+                        onClick = { showAddFavoriteDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
                         shape = RoundedCornerShape(8.dp)
@@ -244,6 +283,45 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+
+        // Add Favorite Dialog
+        if (showAddFavoriteDialog) {
+            var locationInput by remember { mutableStateOf("") }
+            AlertDialog(
+                onDismissRequest = { showAddFavoriteDialog = false },
+                title = { Text("Add Favorite Location") },
+                text = {
+                    Column {
+                        Text("Enter the name of the city you'd like to add to your favorites.")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        TextField(
+                            value = locationInput,
+                            onValueChange = { locationInput = it },
+                            placeholder = { Text("e.g. Los Angeles, CA") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (locationInput.isNotBlank()) {
+                                viewModel.addFavorite(locationInput)
+                                showAddFavoriteDialog = false
+                            }
+                        }
+                    ) {
+                        Text("Add")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddFavoriteDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

@@ -24,6 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Settings
@@ -385,6 +387,8 @@ fun WeatherScreen(
                 WeatherHeader(
                     cityName = uiState.cityName,
                     currentDate = uiState.currentDate,
+                    isFavorite = uiState.favorites.contains(uiState.cityName),
+                    onFavoriteClick = { viewModel.toggleFavorite(uiState.cityName) },
                     onLocationClick = { showLocationDialog = true },
                     onSettingsClick = onNavigateToSettings
                 )
@@ -581,6 +585,8 @@ fun HourlyForecastItem(period: ForecastPeriod) {
     fun WeatherHeader(
         cityName: String,
         currentDate: String,
+        isFavorite: Boolean,
+        onFavoriteClick: () -> Unit,
         onLocationClick: () -> Unit,
         onSettingsClick: () -> Unit,
     ) {
@@ -591,7 +597,13 @@ fun HourlyForecastItem(period: ForecastPeriod) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Spacer(modifier = Modifier.width(48.dp)) // Equalizer spacer for center alignment
+            androidx.compose.material3.IconButton(onClick = onFavoriteClick) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                    tint = if (isFavorite) Color.Red else SoftWhite,
+                )
+            }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
