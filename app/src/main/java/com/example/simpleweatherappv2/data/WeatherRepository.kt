@@ -18,6 +18,7 @@ class WeatherRepository(private val context: Context) {
 
     private val api = RetrofitInstance.api
     private val weatherApi = RetrofitInstance.weatherApi
+    private val aqiApi = RetrofitInstance.aqiApi
     private val API_KEY = "f7ce63eeaaa248079d7143947250604"
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
@@ -91,7 +92,6 @@ class WeatherRepository(private val context: Context) {
             val props = pointsResponse.properties
 
             // Step 2: Get the Forecast using the grid data
-            // CHANGE: We now use "getHourlyForecast" to get the current conditions
             val forecastResponse = api.getHourlyForecast(props.gridId, props.gridX, props.gridY)
 
             // Return the first period (current hour)
@@ -111,10 +111,10 @@ class WeatherRepository(private val context: Context) {
             if (!addresses.isNullOrEmpty()) {
                 val address = addresses[0]
                 val city = address.locality ?: "Unknown City"
-                val state = address.adminArea ?: "" // "NJ", "NY", etc.
+                val state = address.adminArea ?: ""
 
                 if (state.isNotEmpty()) {
-                    "$city, $state" // "Fair Lawn, NJ"
+                    "$city, $state"
                 } else {
                     city
                 }
@@ -220,5 +220,30 @@ class WeatherRepository(private val context: Context) {
             e.printStackTrace()
             null
         }
+    }
+
+    // NEW Fetch AQI from LASS API
+    suspend fun getAqiData(lat: Double, lon: Double): LassAqiFeed? {
+        return try {
+            val response = aqiApi.getRealtimePm25()
+            // Find the closest station
+            response.feeds.minByOrNull { feed ->
+                calculateDistance(lat, lon, feed.lat, feed.lon)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val radius = 6371.0 // Earth radius in km
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        return radius * c
     }
 }

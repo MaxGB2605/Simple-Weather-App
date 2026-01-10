@@ -41,4 +41,13 @@ object RetrofitInstance {
             .build()
             .create(WeatherApiService::class.java)
     }
+
+    val aqiApi: AqiApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://pm25.lass-net.org/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(client)
+            .build()
+            .create(AqiApiService::class.java)
+    }
 }

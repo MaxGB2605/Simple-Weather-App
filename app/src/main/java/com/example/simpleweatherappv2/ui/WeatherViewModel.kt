@@ -3,20 +3,23 @@ package com.example.simpleweatherappv2.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.simpleweatherappv2.data.WeatherRepository
-import com.example.simpleweatherappv2.data.WeatherApiResponse
-import com.example.simpleweatherappv2.data.ForecastPeriod
-import com.example.simpleweatherappv2.utils.SunCalc
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import com.example.simpleweatherappv2.data.WeatherDatabase
 import com.example.simpleweatherappv2.data.FavoriteLocation
-import com.example.simpleweatherappv2.data.FavoriteDao
+import com.example.simpleweatherappv2.data.ForecastPeriod
+import com.example.simpleweatherappv2.data.ForecastUnitValue
+import com.example.simpleweatherappv2.data.LassAqiFeed
+import com.example.simpleweatherappv2.data.WeatherApiResponse
+import com.example.simpleweatherappv2.data.WeatherDatabase
+import com.example.simpleweatherappv2.data.WeatherRepository
+import com.example.simpleweatherappv2.utils.SunCalc
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -137,19 +140,20 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 dataSource = weatherProvider
             )
 
-            // NEW: If using WeatherAPI, try direct search first!
             if (weatherProvider == "WeatherAPI") {
+                // Direct calls, no need for extra coroutineScope since we are already in launch
                 val apiData = repository.getWeatherApiForecast(locationSearch)
+                
                 if (apiData != null) {
+                    val aqiData = repository.getAqiData(apiData.location.lat, apiData.location.lon)
                     lastWeatherApiData = apiData
-                    updateUiStateFromWeatherApi(apiData)
+                    updateUiStateFromWeatherApi(apiData, aqiData)
                     return@launch
                 }
             }
 
-            // 1. Get Coordinates from the city name (fallback logic)
+            // Fallback or NWS path
             val coords = repository.getCoordinates(locationSearch)
-
             if (coords != null) {
                 val finalCityName = repository.getCityName(coords.first, coords.second)
                 fetchAndDisplayWeather(finalCityName, coords.first, coords.second)
@@ -185,22 +189,34 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private suspend fun fetchAndDisplayWeather(city: String, lat: Double, lon: Double) {
+    private suspend fun fetchAndDisplayWeather(city: String, lat: Double, lon: Double) = coroutineScope {
         // Use user selected provider
         if (weatherProvider == "WeatherAPI") {
-            val weatherApiData = repository.getWeatherApiForecast(lat, lon)
+            val weatherApiDataDeferred = async { repository.getWeatherApiForecast(lat, lon) }
+            val aqiDataDeferred = async { repository.getAqiData(lat, lon) }
+            
+            val weatherApiData = weatherApiDataDeferred.await()
+            val aqiData = aqiDataDeferred.await()
+            
             if (weatherApiData != null) {
                 lastWeatherApiData = weatherApiData
-                updateUiStateFromWeatherApi(weatherApiData)
-                return
+                updateUiStateFromWeatherApi(weatherApiData, aqiData)
+                return@coroutineScope
             }
         }
 
         // --- FALLBACK TO NWS ---
-        val observation = repository.getRealTimeWeather(lat, lon)
-        val forecast = repository.getWeather(lat, lon)
-        val dailyList = repository.getDailyForecasts(lat, lon) ?: emptyList()
-        val fullHourlyList = repository.getHourlyForecasts(lat, lon) ?: emptyList()
+        val observationDeferred = async { repository.getRealTimeWeather(lat, lon) }
+        val forecastDeferred = async { repository.getWeather(lat, lon) }
+        val dailyListDeferred = async { repository.getDailyForecasts(lat, lon) ?: emptyList() }
+        val fullHourlyListDeferred = async { repository.getHourlyForecasts(lat, lon) ?: emptyList() }
+        val aqiDataDeferred = async { repository.getAqiData(lat, lon) }
+
+        val observation = observationDeferred.await()
+        val forecast = forecastDeferred.await()
+        val dailyList = dailyListDeferred.await()
+        val fullHourlyList = fullHourlyListDeferred.await()
+        val aqiData = aqiDataDeferred.await()
 
         val now = java.time.ZonedDateTime.now()
         val hourlyList = fullHourlyList
@@ -238,11 +254,25 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
         val uvIndexValue = "3"
         val moonPhaseValue = "Waxing Gibbous"
-        val aqiValue = "42"
-        val aqiStatusValue = "Good"
-        val pm25Value = "8"
-        val pm10Value = "15"
-        val ozoneValue = "32"
+        
+        val aqiValueInt = aqiData?.aqi?.toIntOrNull() 
+            ?: aqiData?.pm25?.let { calculateAqiFromPm25(it) }
+
+        // LASS AQI Mapping
+        val aqiValue = aqiValueInt?.toString() ?: "--"
+        val pm25Value = aqiData?.pm25?.toInt()?.toString() ?: "--"
+        val pm10Value = "--" // LASS API might not provide PM10 directly in this feed
+        val ozoneValue = "--"
+
+        val aqiStatusValue = when {
+            aqiValueInt == null -> "Unknown"
+            aqiValueInt <= 50 -> "Good"
+            aqiValueInt <= 100 -> "Moderate"
+            aqiValueInt <= 150 -> "Unhealthy for Sensitive Groups"
+            aqiValueInt <= 200 -> "Unhealthy"
+            aqiValueInt <= 300 -> "Very Unhealthy"
+            else -> "Hazardous"
+        }
         
         // Settings for NWS
         val isMetricTemp = tempUnit == "°C"
@@ -352,7 +382,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun updateUiStateFromWeatherApi(data: WeatherApiResponse) {
+    private fun updateUiStateFromWeatherApi(data: WeatherApiResponse, lassAqi: LassAqiFeed? = null) {
         val current = data.current
         val forecastDay = data.forecast.forecastDay.firstOrNull()
         val astro = forecastDay?.astro
@@ -385,8 +415,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                         shortForecast = hour.condition.text,
                         detailedForecast = "",
                         isDaytime = hour.isDay == 1,
-                        probabilityOfPrecipitation = com.example.simpleweatherappv2.data.ForecastUnitValue(hour.chanceOfRain.toDouble()),
-                        relativeHumidity = com.example.simpleweatherappv2.data.ForecastUnitValue(hour.humidity.toDouble()),
+                        probabilityOfPrecipitation = ForecastUnitValue(hour.chanceOfRain.toDouble()),
+                        relativeHumidity = ForecastUnitValue(hour.humidity.toDouble()),
                         // NEW FIELDS
                         feelsLike = if (isMetricTemp) hour.feelslikeC else hour.feelslikeF,
                         clouds = hour.cloud,
@@ -410,8 +440,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 shortForecast = day.day.condition.text,
                 detailedForecast = "High near ${if (isMetricTemp) day.day.maxTempC.toInt() else day.day.maxTempF.toInt()}${tempUnit}. Night low around ${if (isMetricTemp) day.day.minTempC.toInt() else day.day.minTempF.toInt()}${tempUnit}.",
                 isDaytime = true,
-                probabilityOfPrecipitation = com.example.simpleweatherappv2.data.ForecastUnitValue(day.day.dailyChanceOfRain.toDouble()),
-                relativeHumidity = com.example.simpleweatherappv2.data.ForecastUnitValue(0.0),
+                probabilityOfPrecipitation = ForecastUnitValue(day.day.dailyChanceOfRain.toDouble()),
+                relativeHumidity = ForecastUnitValue(0.0),
                 // NEW FIELDS
                 uvIndex = day.day.uv,
                 sunrise = day.astro.sunrise,
@@ -422,15 +452,28 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             )
         }
 
-        val usEpa = current.airQuality?.usEpaIndex ?: 1
-        val aqiStatus = when(usEpa) {
-            1 -> "Good"
-            2 -> "Moderate"
-            3 -> "Unhealthy for Sensitive Groups"
-            4 -> "Unhealthy"
-            5 -> "Very Unhealthy"
-            6 -> "Hazardous"
-            else -> "Unknown"
+        val lassAqiVal = lassAqi?.aqi?.toIntOrNull() 
+            ?: lassAqi?.pm25?.let { calculateAqiFromPm25(it) }
+            
+        val usEpa = lassAqiVal ?: current.airQuality?.usEpaIndex ?: 1
+        val aqiStatus = when {
+            lassAqiVal != null -> when {
+                lassAqiVal <= 50 -> "Good"
+                lassAqiVal <= 100 -> "Moderate"
+                lassAqiVal <= 150 -> "Unhealthy for Sensitive Groups"
+                lassAqiVal <= 200 -> "Unhealthy"
+                lassAqiVal <= 300 -> "Very Unhealthy"
+                else -> "Hazardous"
+            }
+            else -> when(usEpa) {
+                1 -> "Good"
+                2 -> "Moderate"
+                3 -> "Unhealthy for Sensitive Groups"
+                4 -> "Unhealthy"
+                5 -> "Very Unhealthy"
+                6 -> "Hazardous"
+                else -> "Unknown"
+            }
         }
         
         val tempVal = if (isMetricTemp) current.tempC else current.tempF
@@ -459,7 +502,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             uvIndex = "${current.uv.toInt()}",
             aqi = "$usEpa", 
             aqiStatus = aqiStatus,
-            pm25 = "${current.airQuality?.pm25?.toInt() ?: 0}",
+            pm25 = "${lassAqi?.pm25?.toInt() ?: current.airQuality?.pm25?.toInt() ?: 0}",
             pm10 = "${current.airQuality?.pm10?.toInt() ?: 0}",
             ozone = "${current.airQuality?.o3?.toInt() ?: 0}", 
             dailyForecasts = dailyList,
@@ -471,4 +514,18 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             dataSource = weatherProvider
         )
     }
+
+    private fun calculateAqiFromPm25(pm25: Double): Int {
+        return when {
+            pm25 <= 12.0 -> ((50.0 / 12.0) * pm25).toInt()
+            pm25 <= 35.4 -> ((49.0 / (35.4 - 12.1)) * (pm25 - 12.1) + 51).toInt()
+            pm25 <= 55.4 -> ((49.0 / (55.4 - 35.5)) * (pm25 - 35.5) + 101).toInt()
+            pm25 <= 150.4 -> ((49.0 / (150.4 - 55.5)) * (pm25 - 55.5) + 151).toInt()
+            pm25 <= 250.4 -> ((99.0 / (250.4 - 150.5)) * (pm25 - 150.5) + 201).toInt()
+            pm25 <= 350.4 -> ((99.0 / (350.4 - 250.5)) * (pm25 - 250.5) + 301).toInt()
+            pm25 <= 500.4 -> ((99.0 / (500.4 - 350.5)) * (pm25 - 350.5) + 401).toInt()
+            else -> 500
+        }
+    }
 }
+
