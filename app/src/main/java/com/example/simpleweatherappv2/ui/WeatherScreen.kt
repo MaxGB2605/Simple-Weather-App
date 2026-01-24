@@ -57,8 +57,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.simpleweatherappv2.data.ForecastPeriod
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.simpleweatherappv2.ui.theme.AccentCyan
 import com.example.simpleweatherappv2.ui.theme.AccentYellow
 import com.example.simpleweatherappv2.ui.theme.GlassCard
@@ -476,8 +480,15 @@ fun WeatherScreen(
                         sunrise = uiState.sunrise,
                         sunset = uiState.sunset,
                         uvIndex = uiState.uvIndex,
-                        moonPhase = uiState.moonPhase
+                        moonPhase = uiState.moonPhase,
+                        moonPhaseImageUrl = uiState.moonPhaseImageUrl,
+                        starChartImageUrl = uiState.starChartImageUrl
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Night Sky Chart
+                    NightSkyCard(imageUrl = uiState.starChartImageUrl)
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -835,7 +846,9 @@ fun SunMoonSection(
     sunrise: String,
     sunset: String,
     uvIndex: String,
-    moonPhase: String
+    moonPhase: String,
+    moonPhaseImageUrl: String? = null,
+    starChartImageUrl: String? = null
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -891,12 +904,24 @@ fun SunMoonSection(
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Nightlight,
-                        contentDescription = "Moon",
-                        tint = Color(0xFFB0C4DE),
-                        modifier = Modifier.size(32.dp)
-                    )
+                    if (moonPhaseImageUrl != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(moonPhaseImageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Moon Phase",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(64.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Nightlight,
+                            contentDescription = "Moon",
+                            tint = Color(0xFFB0C4DE),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Moon Phase", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
                     Text(moonPhase, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center)
@@ -982,5 +1007,43 @@ fun AirQualityBar(label: String, value: String) {
             modifier = Modifier.width(40.dp),
             textAlign = TextAlign.End
         )
+    }
+}
+
+@Composable
+fun NightSkyCard(imageUrl: String?) {
+    if (imageUrl != null) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Night Sky (North Star Region)",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = SoftWhite
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = GlassCard)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(imageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Night Sky Star Chart",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    )
+                }
+            }
+        }
     }
 }

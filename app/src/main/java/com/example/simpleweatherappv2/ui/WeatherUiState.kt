@@ -24,6 +24,8 @@ data class WeatherUiState(
     val sunset: String = "--:-- PM",
     val uvIndex: String = "--",
     val moonPhase: String = "Unknown",
+    val moonPhaseImageUrl: String? = null,
+    val starChartImageUrl: String? = null,
     
     // NEW: Air Quality Data
     val aqi: String = "--",

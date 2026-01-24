@@ -16,19 +16,29 @@ import kotlin.coroutines.suspendCoroutine
 @Suppress("DEPRECATION")
 class WeatherRepository(private val context: Context) {
 
-    private val api = RetrofitInstance.api
     private val weatherApi = RetrofitInstance.weatherApi
-    private val aqiApi = RetrofitInstance.aqiApi
+    private val astronomyApi = RetrofitInstance.astronomyApi
     private val API_KEY = "f7ce63eeaaa248079d7143947250604"
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
-    // NEW: Get Current GPS Location
-    @SuppressLint("MissingPermission") // We will check permission in the UI before calling this
+    // ==================== LOCATION METHODS ====================
+
+    /**
+     * Get current GPS location
+     * Returns Pair<Latitude, Longitude> or null if unavailable
+     */
+    @SuppressLint("MissingPermission")
     suspend fun getCurrentLocation(): Pair<Double, Double>? = suspendCoroutine { continuation ->
         try {
             // Check if we actually have permission
-            val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val hasFine = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasCoarse = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
 
             if (!hasFine && !hasCoarse) {
                 continuation.resume(null)
@@ -36,7 +46,11 @@ class WeatherRepository(private val context: Context) {
             }
 
             // Determine priority based on permission
-            val priority = if (hasFine) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY
+            val priority = if (hasFine) {
+                Priority.PRIORITY_HIGH_ACCURACY
+            } else {
+                Priority.PRIORITY_BALANCED_POWER_ACCURACY
+            }
 
             // Request a FRESH location fix
             val cts = CancellationTokenSource()
@@ -67,11 +81,14 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    // Turn "City Name" into (Lat, Lon)
+    /**
+     * Convert city name to coordinates using Geocoder
+     * Returns Pair<Latitude, Longitude> or null if not found
+     */
     fun getCoordinates(city: String): Pair<Double, Double>? {
         return try {
             val geocoder = Geocoder(context, Locale.getDefault())
-            val addresses = geocoder.getFromLocationName(city, 1) // Get 1 result
+            val addresses = geocoder.getFromLocationName(city, 1)
 
             if (!addresses.isNullOrEmpty()) {
                 val address = addresses[0]
@@ -85,24 +102,10 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    suspend fun getWeather(lat: Double, lon: Double): ForecastPeriod? {
-        try {
-            // Step 1: Get the Grid Point
-            val pointsResponse = api.getGridPoint(lat, lon)
-            val props = pointsResponse.properties
-
-            // Step 2: Get the Forecast using the grid data
-            val forecastResponse = api.getHourlyForecast(props.gridId, props.gridX, props.gridY)
-
-            // Return the first period (current hour)
-            return forecastResponse.properties.periods.firstOrNull()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return null
-        }
-    }
-
-    // NEW: Turn (Lat, Lon) into "City Name"
+    /**
+     * Convert coordinates to city name using Geocoder
+     * Returns formatted city name or "Unknown Location"
+     */
     fun getCityName(lat: Double, lon: Double): String {
         return try {
             val geocoder = Geocoder(context, Locale.getDefault())
@@ -127,81 +130,23 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    // NEW: Get precise "Current Observation" from the nearest station
-    suspend fun getRealTimeWeather(lat: Double, lon: Double): ObservationProperties? {
-        try {
-            // 1. Get Grid Points
-            val pointsResponse = api.getGridPoint(lat, lon)
-            val props = pointsResponse.properties
+    // ==================== WEATHER API METHODS ====================
 
-            // 2. Find the closest Weather Station
-            val stationsResponse = api.getStations(props.gridId, props.gridX, props.gridY)
-            val firstStation = stationsResponse.features.firstOrNull() ?: return null
-            val stationId = firstStation.properties.stationIdentifier
-
-            // 3. Get the Observation from that station
-            val observationResponse = api.getObservation(stationId)
-            return observationResponse.properties
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return null
-        }
-    }
-
-    // NEW: Get the 7-Day Forecast (List of future days)
-    suspend fun getDailyForecasts(lat: Double, lon: Double): List<ForecastPeriod>? {
-        try {
-            // 1. Get Grid Points
-            val pointsResponse = api.getGridPoint(lat, lon)
-            val props = pointsResponse.properties
-
-            // 2. Get the DAILY Forecast
-            val forecastResponse = api.getForecast(props.gridId, props.gridX, props.gridY)
-
-            // Return the whole list of days
-            return forecastResponse.properties.periods
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return null
-        }
-    }
-
-    // NEW: Get the Hourly Forecast (List of upcoming hours)
-    suspend fun getHourlyForecasts(lat: Double, lon: Double): List<ForecastPeriod>? {
-        try {
-            // 1. Get Grid Points
-            val pointsResponse = api.getGridPoint(lat, lon)
-            val props = pointsResponse.properties
-
-            // 2. Get the HOURLY Forecast
-            // Note: NWS API usually provides 156 hours (approx 7 days) of hourly data
-            val forecastResponse = api.getHourlyForecast(props.gridId, props.gridX, props.gridY)
-
-            // Return the whole list
-            return forecastResponse.properties.periods
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return null
-        }
-    }
-    // NEW: Get TimeZone for a location
-    suspend fun getTimeZone(lat: Double, lon: Double): String {
-        return try {
-            val pointsResponse = api.getGridPoint(lat, lon)
-            pointsResponse.properties.timeZone ?: "America/New_York"
-        } catch (e: Exception) {
-            "America/New_York"
-        }
-    }
-
-
-    // NEW: Fetch from WeatherAPI.com (All-in-one)
-    suspend fun getWeatherApiForecast(lat: Double, lon: Double): WeatherApiResponse? {
+    /**
+     * Get comprehensive weather data from WeatherAPI.com
+     * Includes: current weather, forecast, hourly data, AQI, astronomy
+     * 
+     * @param lat Latitude
+     * @param lon Longitude
+     * @return WeatherApiResponse or null if failed
+     */
+    suspend fun getWeatherData(lat: Double, lon: Double): WeatherApiResponse? {
         return try {
             weatherApi.getForecast(
                 apiKey = API_KEY,
-                query = "$lat,$lon"
+                query = "$lat,$lon",
+                days = 7,
+                aqi = "yes"  // Include air quality data
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -209,12 +154,19 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    // NEW: Overload for City Name Search
-    suspend fun getWeatherApiForecast(city: String): WeatherApiResponse? {
+    /**
+     * Get weather data by city name
+     * 
+     * @param city City name (e.g., "New York" or "London, UK")
+     * @return WeatherApiResponse or null if failed
+     */
+    suspend fun getWeatherData(city: String): WeatherApiResponse? {
         return try {
             weatherApi.getForecast(
                 apiKey = API_KEY,
-                query = city
+                query = city,
+                days = 7,
+                aqi = "yes"
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -222,28 +174,51 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    // NEW Fetch AQI from LASS API
-    suspend fun getAqiData(lat: Double, lon: Double): LassAqiFeed? {
+    // ==================== ASTRONOMY API METHODS ====================
+
+    /**
+     * Get moon phase image from Astronomy API
+     * 
+     * @param lat Latitude
+     * @param lon Longitude
+     * @return Image URL or null if failed
+     */
+    suspend fun getMoonPhaseImage(lat: Double, lon: Double): String? {
         return try {
-            val response = aqiApi.getRealtimePm25()
-            // Find the closest station
-            response.feeds.minByOrNull { feed ->
-                calculateDistance(lat, lon, feed.lat, feed.lon)
-            }
+            val currentDate = java.time.LocalDate.now().toString()
+            val request = AstronomyMoonPhaseRequest(
+                style = MoonStyle(),
+                observer = Observer(lat, lon, currentDate),
+                view = View()
+            )
+            val response = astronomyApi.getMoonPhaseImage(request)
+            response.data.imageUrl
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
     }
 
-    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val radius = 6371.0 // Earth radius in km
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2)
-        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        return radius * c
+    /**
+     * Get star chart image from Astronomy API
+     * 
+     * @param lat Latitude
+     * @param lon Longitude
+     * @return Image URL or null if failed
+     */
+    suspend fun getStarChartImage(lat: Double, lon: Double): String? {
+        return try {
+            val currentDate = java.time.LocalDate.now().toString()
+            val request = AstronomyStarChartRequest(
+                style = StarChartStyle(),
+                observer = Observer(lat, lon, currentDate),
+                view = StarChartView(parameters = StarChartParameters(constellation = "umi"))
+            )
+            val response = astronomyApi.getStarChartImage(request)
+            response.data.imageUrl
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 }

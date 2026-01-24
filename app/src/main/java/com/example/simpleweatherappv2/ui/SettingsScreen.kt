@@ -69,10 +69,10 @@ fun SettingsScreen(
     val isDarkTheme = uiState.isDarkTheme
     val tempUnit = uiState.tempUnit
     val speedUnit = uiState.speedUnit
-    val dataSource = uiState.dataSource
     
     // Favorites from ViewModel
     val favorites = uiState.favorites
+
     
     var showAddFavoriteDialog by remember { mutableStateOf(false) }
 
@@ -194,45 +194,6 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // --- DATA SOURCE ---
-            Text("DATA SOURCE", style = MaterialTheme.typography.labelMedium, color = mutedColor)
-            Spacer(modifier = Modifier.height(8.dp))
-            SettingsSectionCard(containerColor = cardColor) {
-                Column {
-                    Text("Weather API", style = MaterialTheme.typography.bodyMedium, color = contentColor)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = contentColor.copy(alpha = 0.1f)),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
-                                    selected = dataSource == "WeatherAPI",
-                                    onClick = { viewModel.setDataSource("WeatherAPI") },
-                                    colors = RadioButtonDefaults.colors(selectedColor = contentColor, unselectedColor = mutedColor)
-                                )
-                                Text("WeatherAPI.com (Recommended)", color = contentColor)
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
-                                    selected = dataSource == "NWS",
-                                    onClick = { viewModel.setDataSource("NWS") },
-                                    colors = RadioButtonDefaults.colors(selectedColor = contentColor, unselectedColor = mutedColor)
-                                )
-                                Text("National Weather Service", color = contentColor)
-                            }
-                        }
-                    }
-                }
-            }
-            
             Spacer(modifier = Modifier.height(16.dp))
             
             // --- FAVORITES ---

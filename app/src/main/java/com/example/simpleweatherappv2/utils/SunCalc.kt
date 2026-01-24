@@ -89,4 +89,25 @@ object SunCalc {
         if (a < 0) a += 360
         return a
     }
+    fun getMoonPhase(date: LocalDate): String {
+        val lp = 2551443 // avg. lunar cycle in seconds
+        val now = java.time.LocalDateTime.of(date, java.time.LocalTime.MIDNIGHT)
+        val knownNewMoon = java.time.LocalDateTime.of(1970, 1, 7, 20, 35, 0) // Known new moon
+        
+        val phaseSeconds = java.time.Duration.between(knownNewMoon, now).seconds % lp
+        val age = phaseSeconds / 86400.0 // age in days
+        
+        // Cycle is approx 29.53 days
+        return when {
+            age < 1.84566 -> "New Moon"
+            age < 5.53699 -> "Waxing Crescent"
+            age < 9.22831 -> "First Quarter"
+            age < 12.91963 -> "Waxing Gibbous"
+            age < 16.61096 -> "Full Moon"
+            age < 20.30228 -> "Waning Gibbous"
+            age < 23.99361 -> "Last Quarter"
+            age < 27.68493 -> "Waning Crescent"
+            else -> "New Moon"
+        }
+    }
 }
