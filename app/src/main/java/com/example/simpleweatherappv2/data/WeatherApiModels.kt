@@ -6,7 +6,8 @@ import com.google.gson.annotations.SerializedName
 data class WeatherApiResponse(
     val location: WeatherLocation,
     val current: CurrentWeather,
-    val forecast: ForecastData
+    val forecast: ForecastData,
+    val alerts: AlertsData?
 )
 
 data class WeatherLocation(
@@ -28,6 +29,8 @@ data class CurrentWeather(
     val condition: WeatherCondition,
     @SerializedName("wind_mph") val windMph: Double,
     @SerializedName("wind_kph") val windKph: Double,
+    @SerializedName("wind_degree") val windDegree: Int?,
+    @SerializedName("wind_dir") val windDir: String?,
     @SerializedName("pressure_mb") val pressureMb: Double,
     @SerializedName("pressure_in") val pressureIn: Double,
     @SerializedName("precip_mm") val precipMm: Double,
@@ -36,9 +39,17 @@ data class CurrentWeather(
     val clouds: Int,
     @SerializedName("feelslike_c") val feelslikeC: Double,
     @SerializedName("feelslike_f") val feelslikeF: Double,
+    @SerializedName("windchill_c") val windchillC: Double?,
+    @SerializedName("windchill_f") val windchillF: Double?,
+    @SerializedName("heatindex_c") val heatindexC: Double?,
+    @SerializedName("heatindex_f") val heatindexF: Double?,
+    @SerializedName("dewpoint_c") val dewpointC: Double?,
+    @SerializedName("dewpoint_f") val dewpointF: Double?,
     @SerializedName("vis_km") val visKm: Double,
     @SerializedName("vis_miles") val visMiles: Double,
-    @SerializedName("uv") val uv: Double,
+    val uv: Double,
+    @SerializedName("gust_mph") val gustMph: Double?,
+    @SerializedName("gust_kph") val gustKph: Double?,
     @SerializedName("air_quality") val airQuality: AirQuality?
 )
 
@@ -82,7 +93,13 @@ data class DayWeather(
     @SerializedName("maxwind_kph") val maxWindKph: Double,
     @SerializedName("totalprecip_mm") val totalPrecipMm: Double,
     @SerializedName("totalprecip_in") val totalPrecipIn: Double,
+    @SerializedName("totalsnow_cm") val totalSnowCm: Double?,
+    @SerializedName("avgvis_km") val avgVisKm: Double?,
+    @SerializedName("avgvis_miles") val avgVisMiles: Double?,
+    @SerializedName("avghumidity") val avgHumidity: Double,
+    @SerializedName("daily_will_it_rain") val dailyWillItRain: Int,
     @SerializedName("daily_chance_of_rain") val dailyChanceOfRain: Int,
+    @SerializedName("daily_will_it_snow") val dailyWillItSnow: Int,
     @SerializedName("daily_chance_of_snow") val dailyChanceOfSnow: Int,
     val condition: WeatherCondition,
     val uv: Double,
@@ -95,7 +112,7 @@ data class Astro(
     val moonrise: String,
     val moonset: String,
     @SerializedName("moon_phase") val moonPhase: String,
-    @SerializedName("moon_illumination") val moonIllumination: String,
+    @SerializedName("moon_illumination") val moonIllumination: Int,
     @SerializedName("is_moon_up") val isMoonUp: Int,
     @SerializedName("is_sun_up") val isSunUp: Int
 )
@@ -109,14 +126,61 @@ data class HourWeather(
     val condition: WeatherCondition,
     @SerializedName("wind_mph") val windMph: Double,
     @SerializedName("wind_kph") val windKph: Double,
+    @SerializedName("wind_degree") val windDegree: Int,
+    @SerializedName("wind_dir") val windDir: String,
     @SerializedName("pressure_mb") val pressureMb: Double,
+    @SerializedName("pressure_in") val pressureIn: Double?,
     @SerializedName("precip_mm") val precipMm: Double,
     @SerializedName("precip_in") val precipIn: Double,
+    @SerializedName("snow_cm") val snowCm: Double?,
     val humidity: Int,
     val cloud: Int,
     @SerializedName("feelslike_c") val feelslikeC: Double,
     @SerializedName("feelslike_f") val feelslikeF: Double,
+    @SerializedName("windchill_c") val windchillC: Double?,
+    @SerializedName("windchill_f") val windchillF: Double?,
+    @SerializedName("heatindex_c") val heatindexC: Double?,
+    @SerializedName("heatindex_f") val heatindexF: Double?,
+    @SerializedName("dewpoint_c") val dewpointC: Double?,
+    @SerializedName("dewpoint_f") val dewpointF: Double?,
+    @SerializedName("will_it_rain") val willItRain: Int,
     @SerializedName("chance_of_rain") val chanceOfRain: Int,
+    @SerializedName("will_it_snow") val willItSnow: Int,
     @SerializedName("chance_of_snow") val chanceOfSnow: Int,
+    @SerializedName("vis_km") val visKm: Double?,
+    @SerializedName("vis_miles") val visMiles: Double?,
+    @SerializedName("gust_mph") val gustMph: Double,
+    @SerializedName("gust_kph") val gustKph: Double,
     val uv: Double
+)
+
+// Search Suggestion Response
+data class SearchSuggestion(
+    val id: Int,
+    val name: String,
+    val region: String,
+    val country: String,
+    val lat: Double,
+    val lon: Double,
+    val url: String
+)
+// Alerts Data
+data class AlertsData(
+    @SerializedName("alert") val alert: List<WeatherAlert>
+)
+
+data class WeatherAlert(
+    val headline: String,
+    val msgtype: String?,
+    val severity: String?,
+    val urgency: String?,
+    val areas: String?,
+    val category: String?,
+    val certainty: String?,
+    val event: String?,
+    val note: String?,
+    val effective: String?,
+    val expires: String?,
+    val desc: String?,
+    val instruction: String?
 )

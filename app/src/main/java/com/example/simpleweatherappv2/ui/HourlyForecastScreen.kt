@@ -1,6 +1,10 @@
 package com.example.simpleweatherappv2.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,22 +24,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.Nightlight
-import androidx.compose.material.icons.filled.Thunderstorm
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Nightlight
+import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.Thunderstorm
+import androidx.compose.material.icons.filled.VerticalAlignCenter
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.Thermostat
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -45,6 +43,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -55,13 +56,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.simpleweatherappv2.data.ForecastPeriod
 import com.example.simpleweatherappv2.ui.theme.AccentCyan
 import com.example.simpleweatherappv2.ui.theme.AccentYellow
-import com.example.simpleweatherappv2.ui.theme.GlassCard
-import com.example.simpleweatherappv2.ui.theme.SoftWhite
-import com.example.simpleweatherappv2.ui.theme.TextSecondary
-import com.example.simpleweatherappv2.ui.theme.NightBlue
-import com.example.simpleweatherappv2.ui.theme.NightPurple
 import com.example.simpleweatherappv2.ui.theme.DayBlue
 import com.example.simpleweatherappv2.ui.theme.DayBlueDark
+import com.example.simpleweatherappv2.ui.theme.GlassCard
+import com.example.simpleweatherappv2.ui.theme.NightBlue
+import com.example.simpleweatherappv2.ui.theme.NightPurple
+import com.example.simpleweatherappv2.ui.theme.SoftWhite
+import com.example.simpleweatherappv2.ui.theme.TextSecondary
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -246,7 +247,7 @@ fun HourlyForecastDetailedItem(period: ForecastPeriod) {
                     // 2-Column Grid for Metrics
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(modifier = Modifier.fillMaxWidth()) {
-                            WeatherGridItem(Modifier.weight(1f), Icons.Default.Air, "Wind", period.windSpeed)
+                            WeatherGridItem(Modifier.weight(1f), Icons.Default.Air, "Wind", "${period.windSpeed} ${period.windDirection}")
                             WeatherGridItem(Modifier.weight(1f), Icons.Default.Thermostat, "Feels Like", "${period.feelsLike?.toInt() ?: "--"}°")
                         }
                         Row(modifier = Modifier.fillMaxWidth()) {
@@ -256,6 +257,34 @@ fun HourlyForecastDetailedItem(period: ForecastPeriod) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             WeatherGridItem(Modifier.weight(1f), Icons.Default.WbSunny, "UV Index", "${period.uvIndex?.toInt() ?: 0}")
                             WeatherGridItem(Modifier.weight(1f), Icons.Default.Air, "Gust", period.windGust ?: "--")
+                        }
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            WeatherGridItem(Modifier.weight(1f), Icons.Default.VerticalAlignCenter, "Pressure", period.pressure ?: "--")
+                            WeatherGridItem(Modifier.weight(1f), Icons.Default.Visibility, "Visibility", period.visibility ?: "--")
+                        }
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            WeatherGridItem(Modifier.weight(1f), Icons.Default.WaterDrop, "Dew Point", period.dewPoint ?: "--")
+                            WeatherGridItem(Modifier.weight(1f), Icons.Default.WaterDrop, "Precipitation", period.precipitation ?: "--")
+                        }
+                        if (period.snowDepth != null && period.snowDepth > 0 || (period.snowChance ?: 0) > 0) {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                if (period.snowDepth != null && period.snowDepth > 0) {
+                                    val snowUnit = if (period.temperatureUnit == "F") "in" else "cm"
+                                    WeatherGridItem(Modifier.weight(1f), Icons.Default.AcUnit, "Snow", "${"%.1f".format(period.snowDepth)} $snowUnit")
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                                
+                                if ((period.snowChance ?: 0) > 0) {
+                                    WeatherGridItem(Modifier.weight(1f), Icons.Default.AcUnit, "Snow Chance", "${period.snowChance}%")
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            WeatherGridItem(Modifier.weight(1f), Icons.Default.Thermostat, "Wind Chill", period.windChill ?: "--")
+                            WeatherGridItem(Modifier.weight(1f), Icons.Default.Thermostat, "Heat Index", period.heatIndex ?: "--")
                         }
                     }
                     

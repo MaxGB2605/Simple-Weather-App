@@ -104,6 +104,37 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     // ==================== WEATHER FETCHING METHODS ====================
 
     /**
+     * Update search suggestions as the user types
+     */
+    fun onSearchQueryChanged(query: String) {
+        if (query.isBlank()) {
+            _uiState.value = _uiState.value.copy(
+                searchSuggestions = emptyList(),
+                isSearching = false
+            )
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val suggestions = repository.getSearchSuggestions(query)
+            _uiState.value = _uiState.value.copy(
+                searchSuggestions = suggestions,
+                isSearching = false
+            )
+        }
+    }
+
+    /**
+     * Clear all search results
+     */
+    fun clearSuggestions() {
+        _uiState.value = _uiState.value.copy(
+            searchSuggestions = emptyList(),
+            isSearching = false
+        )
+    }
+
+    /**
      * Search weather by city name
      */
     fun updateWeather(locationSearch: String) {
@@ -265,7 +296,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                         temperature = if (isMetricTemp) hour.tempC else hour.tempF,
                         temperatureUnit = tempUnit.replace("°", ""),
                         windSpeed = "${(if (isMetricSpeed) hour.windKph else hour.windMph).toInt()} $speedUnit",
-                        windDirection = "",
+                        windDirection = hour.windDir,
                         icon = "https:${hour.condition.icon}",
                         shortForecast = hour.condition.text,
                         detailedForecast = "",
@@ -275,11 +306,19 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                         feelsLike = if (isMetricTemp) hour.feelslikeC else hour.feelslikeF,
                         clouds = hour.cloud,
                         uvIndex = hour.uv,
+                        snowChance = hour.chanceOfSnow,
                         windGust = if (isMetricSpeed) {
-                            "${(hour.windKph * 1.2).toInt()} $speedUnit"
+                            "${hour.gustKph.toInt()} $speedUnit"
                         } else {
-                            "${(hour.windMph * 1.2).toInt()} $speedUnit"
+                            "${hour.gustMph.toInt()} $speedUnit"
                         },
+                        visibility = if (isMetricSpeed) "%.1f km".format(hour.visKm) else "%.1f mi".format(hour.visMiles),
+                        pressure = if (isMetricSpeed) "${hour.pressureMb.toInt()} mb" else "%.2f in".format(hour.pressureIn),
+                        dewPoint = "${(if (isMetricTemp) hour.dewpointC else hour.dewpointF)?.toInt() ?: "--"}$tempUnit",
+                        windChill = "${(if (isMetricTemp) hour.windchillC else hour.windchillF)?.toInt() ?: "--"}$tempUnit",
+                        heatIndex = "${(if (isMetricTemp) hour.heatindexC else hour.heatindexF)?.toInt() ?: "--"}$tempUnit",
+                        precipitation = if (isMetricSpeed) "%.1f mm".format(hour.precipMm) else "%.2f in".format(hour.precipIn),
+                        snowDepth = if (isMetricSpeed) hour.snowCm else (hour.snowCm?.let { it / 2.54 }),
                         airQualityIndex = 1
                     )
                 )
@@ -300,13 +339,17 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 detailedForecast = "High near ${if (isMetricTemp) day.day.maxTempC.toInt() else day.day.maxTempF.toInt()}$tempUnit. Night low around ${if (isMetricTemp) day.day.minTempC.toInt() else day.day.minTempF.toInt()}$tempUnit.",
                 isDaytime = true,
                 probabilityOfPrecipitation = ForecastUnitValue(day.day.dailyChanceOfRain.toDouble()),
-                relativeHumidity = ForecastUnitValue(0.0),
+                relativeHumidity = ForecastUnitValue(day.day.avgHumidity),
                 uvIndex = day.day.uv,
                 sunrise = day.astro.sunrise,
                 sunset = day.astro.sunset,
                 maxTemp = if (isMetricTemp) day.day.maxTempC else day.day.maxTempF,
                 minTemp = if (isMetricTemp) day.day.minTempC else day.day.minTempF,
-                airQualityIndex = day.day.airQuality?.usEpaIndex
+                airQualityIndex = day.day.airQuality?.usEpaIndex,
+                snowDepth = if (isMetricSpeed) day.day.totalSnowCm else (day.day.totalSnowCm?.let { it / 2.54 }),
+                snowChance = day.day.dailyChanceOfSnow,
+                visibility = if (isMetricSpeed) "%.1f km".format(day.day.avgVisKm) else "%.1f mi".format(day.day.avgVisMiles),
+                precipitation = if (isMetricSpeed) "%.1f mm".format(day.day.totalPrecipMm) else "%.2f in".format(day.day.totalPrecipIn)
             )
         }
 
@@ -352,6 +395,10 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             visibility = if (speedUnit == "km/h") "%.1f km".format(current.visKm) else "%.1f mi".format(current.visMiles),
             precipitation = if (speedUnit == "km/h") "%.1f mm".format(current.precipMm) else "%.2f in".format(current.precipIn),
             cloudCover = "${current.clouds}%",
+            dewPoint = "${(if (isMetricTemp) current.dewpointC else current.dewpointF)?.toInt() ?: "--"}$tempUnit",
+            snowChance = "${forecastDay?.day?.dailyChanceOfSnow ?: 0}%",
+            windChill = "${(if (isMetricTemp) current.windchillC else current.windchillF)?.toInt() ?: "--"}$tempUnit",
+            heatIndex = "${(if (isMetricTemp) current.heatindexC else current.heatindexF)?.toInt() ?: "--"}$tempUnit",
             highTemp = "${highTempVal?.toInt() ?: "--"}$tempUnit",
             lowTemp = "${lowTempVal?.toInt() ?: "--"}$tempUnit",
             currentDate = java.time.LocalDate.now()
@@ -361,7 +408,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             daylightDuration = calculateDaylightDuration(astro?.sunrise, astro?.sunset),
             moonrise = astro?.moonrise ?: "--:--",
             moonset = astro?.moonset ?: "--:--",
-            moonIllumination = "${astro?.moonIllumination ?: "0"}%",
+            moonIllumination = "${astro?.moonIllumination ?: 0}%",
             moonPhase = astro?.moonPhase ?: "Unknown",
             moonPhaseImageUrl = moonPhaseImageUrl,
             starChartImageUrl = starChartImageUrl,
@@ -375,6 +422,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             ozone = "${current.airQuality?.o3?.toInt() ?: "--"}",
             dailyForecasts = dailyList,
             hourlyForecasts = hourlyList.take(24),
+            alerts = data.alerts?.alert ?: emptyList(),
             isLoading = false,
             isDarkTheme = isDarkTheme,
             tempUnit = tempUnit,

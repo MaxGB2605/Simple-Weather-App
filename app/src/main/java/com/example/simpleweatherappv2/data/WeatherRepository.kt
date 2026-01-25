@@ -165,12 +165,28 @@ class WeatherRepository(private val context: Context) {
             weatherApi.getForecast(
                 apiKey = API_KEY,
                 query = city,
-                days = 7,
+                days = 3,
                 aqi = "yes"
             )
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    /**
+     * Get city search suggestions for autocomplete
+     * 
+     * @param query Partial city name
+     * @return List of SearchSuggestion or empty list if failed
+     */
+    suspend fun getSearchSuggestions(query: String): List<SearchSuggestion> {
+        return try {
+            if (query.length < 3) return emptyList()
+            weatherApi.getSearchSuggestions(API_KEY, query)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
         }
     }
 
@@ -237,7 +253,7 @@ class WeatherRepository(private val context: Context) {
                                 declination = dec
                             )
                         ),
-                        zoom = 3 // Zoom level 3 as per example
+                        zoom = 5 // Zoom level 3 as per example
                     )
                 )
             )

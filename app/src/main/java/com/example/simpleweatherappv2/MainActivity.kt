@@ -18,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.simpleweatherappv2.ui.AlertsScreen
 import com.example.simpleweatherappv2.ui.ForecastScreen
 import com.example.simpleweatherappv2.ui.HourlyForecastScreen
 import com.example.simpleweatherappv2.ui.SettingsScreen
@@ -30,7 +31,8 @@ enum class AppScreen {
     Today,
     Forecast,
     HourlyForecast,
-    Settings
+    Settings,
+    Alerts
 }
 
 class MainActivity : ComponentActivity() {
@@ -75,7 +77,8 @@ class MainActivity : ComponentActivity() {
                                 viewModel = viewModel,
                                 onNavigateToForecast = { navController.navigate(AppScreen.Forecast.name) },
                                 onNavigateToHourly = { navController.navigate(AppScreen.HourlyForecast.name) },
-                                onNavigateToSettings = { navController.navigate(AppScreen.Settings.name) }
+                                onNavigateToSettings = { navController.navigate(AppScreen.Settings.name) },
+                                onNavigateToAlerts = { navController.navigate(AppScreen.Alerts.name) }
                             )
                         }
 
@@ -100,6 +103,14 @@ class MainActivity : ComponentActivity() {
                             SettingsScreen(
                                 onBack = { navController.popBackStack() },
                                 viewModel = viewModel
+                            )
+                        }
+
+                        // Screen 5: Alerts
+                        composable(AppScreen.Alerts.name) {
+                            AlertsScreen(
+                                viewModel = viewModel,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                     }

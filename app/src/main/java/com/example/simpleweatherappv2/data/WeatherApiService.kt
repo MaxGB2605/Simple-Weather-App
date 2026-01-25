@@ -7,9 +7,15 @@ interface WeatherApiService {
     @GET("forecast.json")
     suspend fun getForecast(
         @Query("key") apiKey: String,
-        @Query("q") query: String, // City name, or Lat,Lon
-        @Query("days") days: Int = 7,
+        @Query("q") query: String,
+        @Query("days") days: Int = 3,
         @Query("aqi") aqi: String = "yes",
-        @Query("alerts") alerts: String = "no"
+        @Query("alerts") alerts: String = "yes"
     ): WeatherApiResponse
+
+    @GET("search.json")
+    suspend fun getSearchSuggestions(
+        @Query("key") apiKey: String,
+        @Query("q") query: String
+    ): List<SearchSuggestion>
 }

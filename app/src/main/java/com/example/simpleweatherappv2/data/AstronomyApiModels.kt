@@ -9,10 +9,10 @@ data class AstronomyMoonPhaseRequest(
 
 data class MoonStyle(
     val moonStyle: String = "default",
-    val backgroundStyle: String = "solid", 
+    val backgroundStyle: String = "stars",
     val backgroundColor: String = "transparent", // Use transparent to blend with app theme
-    val headingColor: String = "transparent",
-    val textColor: String = "transparent"
+    val headingColor: String = "white",
+    val textColor: String = "white"
 )
 
 data class Observer(
@@ -22,7 +22,7 @@ data class Observer(
 )
 
 data class View(
-    val type: String = "portrait-simple",
+    val type: String = "landscape-simple",
     val orientation: String = "south-up"
 )
 

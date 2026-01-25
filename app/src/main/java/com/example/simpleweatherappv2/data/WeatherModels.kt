@@ -26,7 +26,15 @@ data class ForecastPeriod(
     val minTemp: Double? = null,
     val sunrise: String? = null,
     val sunset: String? = null,
-    val airQualityIndex: Int? = null // EPA Index 1-6
+    val airQualityIndex: Int? = null, // EPA Index 1-6
+    val snowDepth: Double? = null, // in cm
+    val snowChance: Int? = null,
+    val visibility: String? = null,
+    val pressure: String? = null,
+    val dewPoint: String? = null,
+    val windChill: String? = null,
+    val heatIndex: String? = null,
+    val precipitation: String? = null
 )
 
 /**
