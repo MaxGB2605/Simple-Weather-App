@@ -22,7 +22,7 @@ data class Observer(
 )
 
 data class View(
-    val type: String = "landscape-simple",
+    val type: String = "portrait-simple",
     val orientation: String = "south-up"
 )
 

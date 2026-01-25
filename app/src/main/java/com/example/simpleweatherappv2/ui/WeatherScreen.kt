@@ -992,6 +992,7 @@ fun SunMoonSection(
                                 .build(),
                             contentDescription = "Moon Phase: $moonPhase",
                             contentScale = ContentScale.Crop, // Zoom to fill
+                            alignment = Alignment.TopCenter, // Focus on top (Moon usually here)
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
