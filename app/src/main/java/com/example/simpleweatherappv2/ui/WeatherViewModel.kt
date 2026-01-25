@@ -127,7 +127,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 lastWeatherData = weatherData
 
                 // Then fetch astronomy data in parallel without blocking the main weather display
-                val moonImageDeferred = async { repository.getMoonPhaseImage(weatherData.location.lat, weatherData.location.lon) }
+                val localDate = weatherData.location.localtime.split(" ")[0]
+                val moonImageDeferred = async { repository.getMoonPhaseImage(weatherData.location.lat, weatherData.location.lon, localDate) }
                 val starChartDeferred = async { repository.getStarChartImage(weatherData.location.lat, weatherData.location.lon) }
                 
                 val moonImage = moonImageDeferred.await()
@@ -208,7 +209,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             updateUiStateFromWeatherApi(weatherData, null, null)
             
             // 2. Then fetch astronomy data in parallel
-            val moonImageDeferred = async { repository.getMoonPhaseImage(lat, lon) }
+            val localDate = weatherData.location.localtime.split(" ")[0]
+            val moonImageDeferred = async { repository.getMoonPhaseImage(lat, lon, localDate) }
             val starChartDeferred = async { repository.getStarChartImage(lat, lon) }
 
             val moonImage = moonImageDeferred.await()

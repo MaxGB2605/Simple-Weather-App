@@ -183,14 +183,13 @@ class WeatherRepository(private val context: Context) {
      * @param lon Longitude
      * @return Image URL or null if failed
      */
-    suspend fun getMoonPhaseImage(lat: Double, lon: Double): String? {
+    suspend fun getMoonPhaseImage(lat: Double, lon: Double, date: String): String? {
         return try {
-            val currentDate = java.time.LocalDate.now().toString()
-            android.util.Log.d("MoonPhase", "Requesting moon phase for lat=$lat, lon=$lon, date=$currentDate")
+            android.util.Log.d("MoonPhase", "Requesting moon phase for lat=$lat, lon=$lon, date=$date")
             
             val request = AstronomyMoonPhaseRequest(
                 style = MoonStyle(),
-                observer = Observer(lat, lon, currentDate),
+                observer = Observer(lat, lon, date),
                 view = View()
             )
             
