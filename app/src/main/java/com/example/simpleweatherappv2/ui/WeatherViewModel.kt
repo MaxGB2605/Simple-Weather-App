@@ -274,9 +274,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                         clouds = hour.cloud,
                         uvIndex = hour.uv,
                         windGust = if (isMetricSpeed) {
-                            "${hour.windKph * 1.2} $speedUnit"
+                            "${(hour.windKph * 1.2).toInt()} $speedUnit"
                         } else {
-                            "${hour.windMph * 1.2} $speedUnit"
+                            "${(hour.windMph * 1.2).toInt()} $speedUnit"
                         },
                         airQualityIndex = 1
                     )
@@ -346,13 +346,20 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             wind = "${windVal.toInt()} $speedUnit",
             rainChance = "${forecastDay?.day?.dailyChanceOfRain ?: 0}%",
             feelsLike = "${feelsLikeVal.toInt()}$tempUnit",
-            pressure = "${current.pressureMb.toInt()} mb",
+            pressure = if (speedUnit == "km/h") "${current.pressureMb.toInt()} mb" else "%.2f inHg".format(current.pressureIn),
+            visibility = if (speedUnit == "km/h") "%.1f km".format(current.visKm) else "%.1f mi".format(current.visMiles),
+            precipitation = if (speedUnit == "km/h") "%.1f mm".format(current.precipMm) else "%.2f in".format(current.precipIn),
+            cloudCover = "${current.clouds}%",
             highTemp = "${highTempVal?.toInt() ?: "--"}$tempUnit",
             lowTemp = "${lowTempVal?.toInt() ?: "--"}$tempUnit",
             currentDate = java.time.LocalDate.now()
                 .format(java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d")),
             sunrise = astro?.sunrise ?: "--:--",
             sunset = astro?.sunset ?: "--:--",
+            daylightDuration = calculateDaylightDuration(astro?.sunrise, astro?.sunset),
+            moonrise = astro?.moonrise ?: "--:--",
+            moonset = astro?.moonset ?: "--:--",
+            moonIllumination = "${astro?.moonIllumination ?: "0"}%",
             moonPhase = astro?.moonPhase ?: "Unknown",
             moonPhaseImageUrl = moonPhaseImageUrl,
             starChartImageUrl = starChartImageUrl,
@@ -408,6 +415,24 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             )
         } else {
             refreshWeather()
+        }
+    }
+    
+    private fun calculateDaylightDuration(sunrise: String?, sunset: String?): String {
+        if (sunrise == null || sunset == null) return "--"
+        return try {
+            // WeatherAPI returns time like "07:12 AM"
+            val formatter = java.time.format.DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.US)
+            val sunriseTime = java.time.LocalTime.parse(sunrise.uppercase(), formatter)
+            val sunsetTime = java.time.LocalTime.parse(sunset.uppercase(), formatter)
+            
+            val duration = java.time.Duration.between(sunriseTime, sunsetTime)
+            val hours = duration.toHours()
+            val minutes = duration.toMinutes() % 60
+            
+            "$hours hrs $minutes mins"
+        } catch (e: Exception) {
+            "--"
         }
     }
 }

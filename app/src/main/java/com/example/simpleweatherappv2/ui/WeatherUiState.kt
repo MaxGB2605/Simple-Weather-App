@@ -11,6 +11,9 @@ data class WeatherUiState(
     val rainChance: String = "--%",
     val feelsLike: String = "--°F",
     val pressure: String = "-- mb",
+    val visibility: String = "--",
+    val cloudCover: String = "--",
+    val precipitation: String = "--",
     
     // NEW: High/Low Temperature
     val highTemp: String = "--°F",
@@ -22,6 +25,10 @@ data class WeatherUiState(
     // NEW: Sun/Moon Data
     val sunrise: String = "--:-- AM",
     val sunset: String = "--:-- PM",
+    val daylightDuration: String = "--",
+    val moonrise: String = "--:--",
+    val moonset: String = "--:--",
+    val moonIllumination: String = "0",
     val uvIndex: String = "--",
     val moonPhase: String = "Unknown",
     val moonPhaseImageUrl: String? = null,

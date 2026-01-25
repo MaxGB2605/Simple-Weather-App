@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Air
@@ -33,6 +34,9 @@ import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Thunderstorm
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.RemoveRedEye
+import androidx.compose.material.icons.filled.VerticalAlignCenter
+import androidx.compose.material.icons.filled.InvertColors
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -454,6 +458,16 @@ fun WeatherScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Current Details Grid
+                    CurrentDetailsSection(
+                        visibility = uiState.visibility,
+                        pressure = uiState.pressure,
+                        cloudCover = uiState.cloudCover,
+                        precipitation = uiState.precipitation
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+
 
                     // 4. HOURLY FORECAST (NEW)
                     // 4. HOURLY FORECAST (NEW STYLE)
@@ -480,8 +494,12 @@ fun WeatherScreen(
                     SunMoonSection(
                         sunrise = uiState.sunrise,
                         sunset = uiState.sunset,
+                        daylightDuration = uiState.daylightDuration,
                         uvIndex = uiState.uvIndex,
                         moonPhase = uiState.moonPhase,
+                        moonrise = uiState.moonrise,
+                        moonset = uiState.moonset,
+                        moonIllumination = uiState.moonIllumination,
                         moonPhaseImageUrl = uiState.moonPhaseImageUrl,
                         starChartImageUrl = uiState.starChartImageUrl
                     )
@@ -849,8 +867,12 @@ fun DailyForecastInlineItem(period: ForecastPeriod) {
 fun SunMoonSection(
     sunrise: String,
     sunset: String,
+    daylightDuration: String,
     uvIndex: String,
     moonPhase: String,
+    moonrise: String,
+    moonset: String,
+    moonIllumination: String,
     moonPhaseImageUrl: String? = null,
     starChartImageUrl: String? = null
 ) {
@@ -870,94 +892,154 @@ fun SunMoonSection(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = GlassCard)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier.background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x33FFD54F), // Semi-transparent yellow
+                            Color.Transparent
+                        )
+                    )
+                )
             ) {
-                // Sunrise
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.WbSunny, contentDescription = "Sunrise", tint = AccentYellow)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Sunrise", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
-                    Text(sunrise, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-                
-                // Sunset
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Nightlight, contentDescription = "Sunset", tint = Color(0xFFFF9800)) // Use Orange for Sunset
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Sunset", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
-                    Text(sunset, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-                
-                // UV Index
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Thermostat, contentDescription = "UV", tint = AccentCyan)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("UV Index", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
-                    Text(uvIndex, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Sunrise
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.WbSunny, contentDescription = "Sunrise", tint = AccentYellow)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Sunrise", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
+                            Text(sunrise, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                        
+                        // Sunset
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Nightlight, contentDescription = "Sunset", tint = Color(0xFFFF9800))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Sunset", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
+                            Text(sunset, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                        
+                        // UV Index
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Thermostat, contentDescription = "UV", tint = AccentCyan)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("UV Index", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
+                            Text(uvIndex, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Daylight Duration
+                    Text(
+                        text = "Total Daylight: $daylightDuration",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SoftWhite.copy(alpha = 0.8f)
+                    )
                 }
             }
         }
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // 2. Moon Card (Full Width)
+        // 2. Moon Card (Full Width with Stats)
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp), // Fixed height for Moon Image
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = GlassCard)
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (moonPhaseImageUrl != null) {
-                    // API image already contains the moon phase name and date
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(moonPhaseImageUrl)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Moon Phase: $moonPhase",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize()
+                modifier = Modifier.background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x335C6BC0), // Semi-transparent Indigo
+                            Color.Transparent
+                        )
                     )
-                } else {
-                    // Fallback when no image available
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Nightlight,
-                            contentDescription = "Moon",
-                            tint = Color(0xFFB0C4DE),
-                            modifier = Modifier.size(64.dp)
+                )
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                // Image Section
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp) // Slightly reduced to make room for stats
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (moonPhaseImageUrl != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(moonPhaseImageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Moon Phase: $moonPhase",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            "Loading moon phase...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = SoftWhite.copy(alpha = 0.7f)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            moonPhase,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            textAlign = TextAlign.Center
-                        )
+                    } else {
+                        // Fallback
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Nightlight,
+                                contentDescription = "Loading moon",
+                                tint = Color(0xFFB0C4DE),
+                                modifier = Modifier.size(56.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "Loading moon phase...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = SoftWhite.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
+                
+                // Divider
+                androidx.compose.material3.HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = Color.White.copy(alpha = 0.1f)
+                )
+                
+                // Stats Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Moonrise
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Moonrise", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
+                        Text(moonrise, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    
+                    // Moonset
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Moonset", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
+                        Text(moonset, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    
+                    // Illumination
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Illumination", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
+                        Text(moonIllumination, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
             }
         }
     }
@@ -1038,6 +1120,93 @@ fun AirQualityBar(label: String, value: String) {
             color = Color.White,
             modifier = Modifier.width(40.dp),
             textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+fun CurrentDetailsSection(
+    visibility: String,
+    pressure: String,
+    cloudCover: String,
+    precipitation: String
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Current Details",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = SoftWhite
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = GlassCard)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                // Row 1
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    DetailItem(
+                        icon = Icons.Default.RemoveRedEye, // Visibility
+                        label = "Visibility",
+                        value = visibility
+                    )
+                    DetailItem(
+                        icon = Icons.Default.VerticalAlignCenter, // Pressure
+                        label = "Pressure",
+                        value = pressure
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Row 2
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    DetailItem(
+                        icon = Icons.Default.Cloud, 
+                        label = "Cloud Cover",
+                        value = cloudCover
+                    )
+                    DetailItem(
+                        icon = Icons.Default.InvertColors, // Precipitation
+                        label = "Precipitation",
+                        value = precipitation
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DetailItem(icon: ImageVector, label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = SoftWhite,
+            modifier = Modifier.size(28.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = SoftWhite.copy(alpha = 0.7f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
         )
     }
 }
