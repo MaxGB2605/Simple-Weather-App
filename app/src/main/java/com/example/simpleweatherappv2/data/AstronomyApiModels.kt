@@ -9,8 +9,8 @@ data class AstronomyMoonPhaseRequest(
 
 data class MoonStyle(
     val moonStyle: String = "default",
-    val backgroundStyle: String = "stars",
-    val backgroundColor: String = "transparent", // Use transparent to blend with app theme
+    val backgroundStyle: String = "solid",
+    val backgroundColor: String = "rgba(0,0,0,0)",
     val headingColor: String = "white",
     val textColor: String = "white"
 )
@@ -42,8 +42,8 @@ data class AstronomyStarChartRequest(
 
 data class StarChartStyle(
     val starStyle: String = "default",
-    val backgroundStyle: String = "black",
-    val backgroundColor: String = "black",
+    val backgroundStyle: String = "solid",
+    val backgroundColor: String = "rgba(0,0,0,0)",
     val headingColor: String = "white",
     val textColor: String = "white",
     val constellations: ConstellationStyle = ConstellationStyle()

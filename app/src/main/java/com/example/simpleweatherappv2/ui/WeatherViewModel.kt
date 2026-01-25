@@ -154,10 +154,10 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
             if (weatherData != null) {
                 // Update UI with weather data IMMEDIATELY so user doesn't wait
-                updateUiStateFromWeatherApi(weatherData, null, null)
+                updateUiStateFromWeatherApi(weatherData, lastMoonPhaseImage, lastStarChartImage, isGps = false)
                 lastWeatherData = weatherData
 
-                // Then fetch astronomy data in parallel without blocking the main weather display
+                // Then fetch astronomy data in parallel if location changed or images missing
                 val localDate = weatherData.location.localtime.split(" ")[0]
                 val moonImageDeferred = async { repository.getMoonPhaseImage(weatherData.location.lat, weatherData.location.lon, localDate) }
                 val starChartDeferred = async { repository.getStarChartImage(weatherData.location.lat, weatherData.location.lon) }
@@ -165,17 +165,17 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 val moonImage = moonImageDeferred.await()
                 val starChart = starChartDeferred.await()
 
-                lastMoonPhaseImage = moonImage
-                lastStarChartImage = starChart
+                if (moonImage != null) lastMoonPhaseImage = moonImage
+                if (starChart != null) lastStarChartImage = starChart
 
-                // Update UI again with astronomy images
-                updateUiStateFromWeatherApi(weatherData, moonImage, starChart)
+                // Update UI again with new astronomy images
+                updateUiStateFromWeatherApi(weatherData, lastMoonPhaseImage, lastStarChartImage, isGps = false)
             } else {
                 // Fallback: Try geocoding the city name to coordinates
                 val coords = repository.getCoordinates(locationSearch)
                 if (coords != null) {
                     val cityName = repository.getCityName(coords.first, coords.second)
-                    fetchAndDisplayWeather(cityName, coords.first, coords.second)
+                    fetchAndDisplayWeather(cityName, coords.first, coords.second, isGps = false)
                 } else {
                     showError("City not found")
                 }
@@ -202,7 +202,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
             if (coords != null) {
                 val cityName = repository.getCityName(coords.first, coords.second)
-                fetchAndDisplayWeather(cityName, coords.first, coords.second)
+                fetchAndDisplayWeather(cityName, coords.first, coords.second, isGps = true)
             } else {
                 showError("Location denied or not found")
             }
@@ -213,11 +213,15 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
      * Refresh current weather data
      */
     fun refreshWeather() {
-        val currentCity = _uiState.value.cityName
-        if (currentCity != "Unknown" && currentCity != "Locating...") {
-            updateWeather(currentCity)
-        } else {
+        if (_uiState.value.isUsingGps) {
             fetchCurrentLocation()
+        } else {
+            val currentCity = _uiState.value.cityName
+            if (currentCity != "Unknown" && currentCity != "Locating...") {
+                updateWeather(currentCity)
+            } else {
+                fetchCurrentLocation()
+            }
         }
     }
 
@@ -229,7 +233,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private suspend fun fetchAndDisplayWeather(
         city: String,
         lat: Double,
-        lon: Double
+        lon: Double,
+        isGps: Boolean
     ) = coroutineScope {
         // 1. Fetch main weather data FIRST
         val weatherData = repository.getWeatherData(lat, lon)
@@ -237,7 +242,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         if (weatherData != null) {
             // Update UI immediately with weather data
             lastWeatherData = weatherData
-            updateUiStateFromWeatherApi(weatherData, null, null)
+            updateUiStateFromWeatherApi(weatherData, lastMoonPhaseImage, lastStarChartImage, isGps = isGps)
             
             // 2. Then fetch astronomy data in parallel
             val localDate = weatherData.location.localtime.split(" ")[0]
@@ -247,11 +252,11 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             val moonImage = moonImageDeferred.await()
             val starChart = starChartDeferred.await()
 
-            lastMoonPhaseImage = moonImage
-            lastStarChartImage = starChart
+            if (moonImage != null) lastMoonPhaseImage = moonImage
+            if (starChart != null) lastStarChartImage = starChart
             
             // 3. Update UI again with astronomy data
-            updateUiStateFromWeatherApi(weatherData, moonImage, starChart)
+            updateUiStateFromWeatherApi(weatherData, lastMoonPhaseImage, lastStarChartImage, isGps = isGps)
         } else {
             showError("Weather data unavailable")
         }
@@ -263,7 +268,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private fun updateUiStateFromWeatherApi(
         data: WeatherApiResponse,
         moonPhaseImageUrl: String? = null,
-        starChartImageUrl: String? = null
+        starChartImageUrl: String? = null,
+        isGps: Boolean
     ) {
         val current = data.current
         val forecastDay = data.forecast.forecastDay.firstOrNull()
@@ -424,6 +430,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             hourlyForecasts = hourlyList.take(24),
             alerts = data.alerts?.alert ?: emptyList(),
             isLoading = false,
+            isUsingGps = isGps,
             isDarkTheme = isDarkTheme,
             tempUnit = tempUnit,
             speedUnit = speedUnit,
@@ -461,7 +468,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             updateUiStateFromWeatherApi(
                 lastWeatherData!!,
                 lastMoonPhaseImage,
-                lastStarChartImage
+                lastStarChartImage,
+                isGps = _uiState.value.isUsingGps
             )
         } else {
             refreshWeather()
