@@ -980,8 +980,8 @@ fun SunMoonSection(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp) // Slightly reduced to make room for stats
-                        .padding(16.dp),
+                        .height(260.dp) // Increased height for better aspect ratio with Crop
+                        .padding(0.dp), // Removed padding for full bleed
                     contentAlignment = Alignment.Center
                 ) {
                     if (moonPhaseImageUrl != null) {
@@ -991,7 +991,7 @@ fun SunMoonSection(
                                 .crossfade(true)
                                 .build(),
                             contentDescription = "Moon Phase: $moonPhase",
-                            contentScale = ContentScale.Fit,
+                            contentScale = ContentScale.Crop, // Zoom to fill
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
