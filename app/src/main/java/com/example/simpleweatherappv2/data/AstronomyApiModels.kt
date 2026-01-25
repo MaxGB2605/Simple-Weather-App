@@ -11,8 +11,8 @@ data class MoonStyle(
     val moonStyle: String = "default",
     val backgroundStyle: String = "solid", 
     val backgroundColor: String = "transparent", // Use transparent to blend with app theme
-    val headingColor: String = "white",
-    val textColor: String = "white"
+    val headingColor: String = "transparent",
+    val textColor: String = "transparent"
 )
 
 data class Observer(
