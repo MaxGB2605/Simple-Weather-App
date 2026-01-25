@@ -864,89 +864,98 @@ fun SunMoonSection(
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Max),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        // 1. Sun Card (Full Width)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = GlassCard)
         ) {
-            // Sun Card
-            Card(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = GlassCard)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.WbSunny,
-                        contentDescription = "Sun",
-                        tint = AccentYellow,
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+                // Sunrise
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.WbSunny, contentDescription = "Sunrise", tint = AccentYellow)
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text("Sunrise", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
-                    Text(sunrise, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(sunrise, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+                
+                // Sunset
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Nightlight, contentDescription = "Sunset", tint = Color(0xFFFF9800)) // Use Orange for Sunset
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text("Sunset", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
-                    Text(sunset, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(sunset, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+                
+                // UV Index
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Thermostat, contentDescription = "UV", tint = AccentCyan)
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text("UV Index", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
-                    Text(uvIndex, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(uvIndex, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
-            
-            // Moon Card
-            Card(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = GlassCard)
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 2. Moon Card (Full Width)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp), // Fixed height for Moon Image
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = GlassCard)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (moonPhaseImageUrl != null) {
-                        // API image already contains the moon phase name and date
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(moonPhaseImageUrl)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = "Moon Phase: $moonPhase",
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize()
+                if (moonPhaseImageUrl != null) {
+                    // API image already contains the moon phase name and date
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(moonPhaseImageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Moon Phase: $moonPhase",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Fallback when no image available
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Nightlight,
+                            contentDescription = "Moon",
+                            tint = Color(0xFFB0C4DE),
+                            modifier = Modifier.size(64.dp)
                         )
-                    } else {
-                        // Fallback when no image available
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Nightlight,
-                                contentDescription = "Moon",
-                                tint = Color(0xFFB0C4DE),
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                "Moon Phase",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = SoftWhite
-                            )
-                            Text(
-                                moonPhase,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Loading moon phase...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = SoftWhite.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            moonPhase,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
