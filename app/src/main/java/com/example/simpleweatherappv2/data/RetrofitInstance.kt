@@ -45,6 +45,9 @@ object RetrofitInstance {
                 .build()
             chain.proceed(request)
         }
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)  // Increased from default 10s
+        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)     // Star chart generation can be slow
+        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
     val astronomyApi: AstronomyApiService by lazy {

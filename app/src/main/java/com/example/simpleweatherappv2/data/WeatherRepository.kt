@@ -186,14 +186,21 @@ class WeatherRepository(private val context: Context) {
     suspend fun getMoonPhaseImage(lat: Double, lon: Double): String? {
         return try {
             val currentDate = java.time.LocalDate.now().toString()
+            android.util.Log.d("MoonPhase", "Requesting moon phase for lat=$lat, lon=$lon, date=$currentDate")
+            
             val request = AstronomyMoonPhaseRequest(
                 style = MoonStyle(),
                 observer = Observer(lat, lon, currentDate),
                 view = View()
             )
+            
+            android.util.Log.d("MoonPhase", "Making API call to Astronomy API...")
             val response = astronomyApi.getMoonPhaseImage(request)
+            
+            android.util.Log.d("MoonPhase", "Success! Image URL: ${response.data.imageUrl}")
             response.data.imageUrl
         } catch (e: Exception) {
+            android.util.Log.e("MoonPhase", "Error fetching moon phase: ${e.message}", e)
             e.printStackTrace()
             null
         }
@@ -209,16 +216,100 @@ class WeatherRepository(private val context: Context) {
     suspend fun getStarChartImage(lat: Double, lon: Double): String? {
         return try {
             val currentDate = java.time.LocalDate.now().toString()
+            
+            // Calculate Zenith coordinates
+            // Declination = Latitude
+            val dec = lat
+            // Right Ascension = Local Sidereal Time
+            val ra = calculateLST(lon)
+            
+            android.util.Log.d("StarChart", "Calculating Zenith for lat=$lat, lon=$lon")
+            android.util.Log.d("StarChart", "Zenith RA=$ra, Dec=$dec")
+            
             val request = AstronomyStarChartRequest(
-                style = StarChartStyle(),
+                style = "default",  
                 observer = Observer(lat, lon, currentDate),
-                view = StarChartView(parameters = StarChartParameters(constellation = "umi"))
+                view = StarChartView(
+                    type = "area",
+                    parameters = StarChartParameters(
+                        position = StarChartPosition(
+                            equatorial = EquatorialCoordinates(
+                                rightAscension = ra,
+                                declination = dec
+                            )
+                        ),
+                        zoom = 3 // Zoom level 3 as per example
+                    )
+                )
             )
+            
+            android.util.Log.d("StarChart", "Request JSON: ${com.google.gson.Gson().toJson(request)}")
+            android.util.Log.d("StarChart", "Making API call to Astronomy API...")
             val response = astronomyApi.getStarChartImage(request)
+            
+            android.util.Log.d("StarChart", "Success! Image URL: ${response.data.imageUrl}")
             response.data.imageUrl
+        } catch (e: retrofit2.HttpException) {
+            android.util.Log.e("StarChart", "HTTP Error ${e.code()}: ${e.message()}", e)
+            try {
+                val errorBody = e.response()?.errorBody()?.string()
+                android.util.Log.e("StarChart", "Response body: $errorBody")
+            } catch (ex: Exception) {
+                android.util.Log.e("StarChart", "Could not read error body", ex)
+            }
+            null
         } catch (e: Exception) {
+            android.util.Log.e("StarChart", "Error fetching star chart: ${e.message}", e)
             e.printStackTrace()
             null
         }
+    }
+
+    /**
+     * Calculate Local Sidereal Time (LST) in hours
+     * Approximates the Right Ascension of the Zenith
+     */
+    private fun calculateLST(lon: Double): Double {
+        val now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC)
+        
+        // Calculate Julian Date
+        val year = now.year
+        val month = now.monthValue
+        val day = now.dayOfMonth
+        val hour = now.hour + now.minute / 60.0 + now.second / 3600.0
+        
+        var y = year
+        var m = month
+        if (m <= 2) {
+            y -= 1
+            m += 12
+        }
+        
+        val a = y / 100
+        val b = 2 - a + a / 4
+        
+        val jd = (365.25 * (y + 4716)).toInt() + (30.6001 * (m + 1)).toInt() + day + b - 1524.5 + hour / 24.0
+        
+        // GMST calculation (approximate)
+        val d = jd - 2451545.0
+        
+        // GMST in degrees
+        var theta = 280.46061837 + 360.98564736629 * d
+        
+        // Normalize
+        theta %= 360.0
+        if (theta < 0) theta += 360.0
+        
+        // Convert to hours
+        val gmstHours = theta / 15.0
+        
+        // LST = GMST + Lon/15
+        var lst = gmstHours + lon / 15.0
+        
+        // Normalize to 0-24
+        lst %= 24.0
+        if (lst < 0) lst += 24.0
+        
+        return lst
     }
 }

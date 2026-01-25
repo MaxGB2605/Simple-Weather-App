@@ -26,6 +26,7 @@ data class WeatherUiState(
     val moonPhase: String = "Unknown",
     val moonPhaseImageUrl: String? = null,
     val starChartImageUrl: String? = null,
+    val constellationName: String = "Sky Directly Overhead", 
     
     // NEW: Air Quality Data
     val aqi: String = "--",

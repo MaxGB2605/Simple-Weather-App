@@ -122,20 +122,21 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             val weatherData = repository.getWeatherData(locationSearch)
 
             if (weatherData != null) {
-                // Fetch astronomy data in parallel
-                val moonImage = repository.getMoonPhaseImage(
-                    weatherData.location.lat,
-                    weatherData.location.lon
-                )
-                val starChart = repository.getStarChartImage(
-                    weatherData.location.lat,
-                    weatherData.location.lon
-                )
-
+                // Update UI with weather data IMMEDIATELY so user doesn't wait
+                updateUiStateFromWeatherApi(weatherData, null, null)
                 lastWeatherData = weatherData
+
+                // Then fetch astronomy data in parallel without blocking the main weather display
+                val moonImageDeferred = async { repository.getMoonPhaseImage(weatherData.location.lat, weatherData.location.lon) }
+                val starChartDeferred = async { repository.getStarChartImage(weatherData.location.lat, weatherData.location.lon) }
+                
+                val moonImage = moonImageDeferred.await()
+                val starChart = starChartDeferred.await()
+
                 lastMoonPhaseImage = moonImage
                 lastStarChartImage = starChart
 
+                // Update UI again with astronomy images
                 updateUiStateFromWeatherApi(weatherData, moonImage, starChart)
             } else {
                 // Fallback: Try geocoding the city name to coordinates
@@ -198,19 +199,25 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         lat: Double,
         lon: Double
     ) = coroutineScope {
-        // Fetch all data in parallel
-        val weatherDataDeferred = async { repository.getWeatherData(lat, lon) }
-        val moonImageDeferred = async { repository.getMoonPhaseImage(lat, lon) }
-        val starChartDeferred = async { repository.getStarChartImage(lat, lon) }
-
-        val weatherData = weatherDataDeferred.await()
-        val moonImage = moonImageDeferred.await()
-        val starChart = starChartDeferred.await()
-
+        // 1. Fetch main weather data FIRST
+        val weatherData = repository.getWeatherData(lat, lon)
+        
         if (weatherData != null) {
+            // Update UI immediately with weather data
             lastWeatherData = weatherData
+            updateUiStateFromWeatherApi(weatherData, null, null)
+            
+            // 2. Then fetch astronomy data in parallel
+            val moonImageDeferred = async { repository.getMoonPhaseImage(lat, lon) }
+            val starChartDeferred = async { repository.getStarChartImage(lat, lon) }
+
+            val moonImage = moonImageDeferred.await()
+            val starChart = starChartDeferred.await()
+
             lastMoonPhaseImage = moonImage
             lastStarChartImage = starChart
+            
+            // 3. Update UI again with astronomy data
             updateUiStateFromWeatherApi(weatherData, moonImage, starChart)
         } else {
             showError("Weather data unavailable")
@@ -329,6 +336,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             forecastDay?.day?.minTempF
         }
 
+        // Update UI state
         _uiState.value = _uiState.value.copy(
             cityName = "${data.location.name}, ${data.location.region}",
             temperature = "${tempVal.toInt()}$tempUnit",
@@ -348,6 +356,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             moonPhase = astro?.moonPhase ?: "Unknown",
             moonPhaseImageUrl = moonPhaseImageUrl,
             starChartImageUrl = starChartImageUrl,
+            constellationName = "Sky Directly Overhead",
             uvIndex = "${current.uv.toInt()}",
             // Fixed AQI - no longer defaults to 1
             aqi = usEpaIndex?.toString() ?: "--",

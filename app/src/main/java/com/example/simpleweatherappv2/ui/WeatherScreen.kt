@@ -475,6 +475,7 @@ fun WeatherScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
+
 // Sun & Moon
                     SunMoonSection(
                         sunrise = uiState.sunrise,
@@ -487,11 +488,6 @@ fun WeatherScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Night Sky Chart
-                    NightSkyCard(imageUrl = uiState.starChartImageUrl)
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
 // Air Quality
                     AirQualitySection(
                         aqi = uiState.aqi,
@@ -499,6 +495,14 @@ fun WeatherScreen(
                         pm25 = uiState.pm25,
                         pm10 = uiState.pm10,
                         ozone = uiState.ozone
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Night Sky Chart (moved to bottom) - Re-enabled with fixed API format
+                    NightSkyCard(
+                        imageUrl = uiState.starChartImageUrl,
+                        constellationName = uiState.constellationName
                     )
 
 
@@ -880,15 +884,15 @@ fun SunMoonSection(
                         imageVector = Icons.Default.WbSunny,
                         contentDescription = "Sun",
                         tint = AccentYellow,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(40.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text("Sunrise", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
                     Text(sunrise, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text("Sunset", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
                     Text(sunset, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text("UV Index", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
                     Text(uvIndex, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.White)
                 }
@@ -900,31 +904,50 @@ fun SunMoonSection(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = GlassCard)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     if (moonPhaseImageUrl != null) {
+                        // API image already contains the moon phase name and date
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
                                 .data(moonPhaseImageUrl)
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = "Moon Phase",
+                            contentDescription = "Moon Phase: $moonPhase",
                             contentScale = ContentScale.Fit,
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.Nightlight,
-                            contentDescription = "Moon",
-                            tint = Color(0xFFB0C4DE),
-                            modifier = Modifier.size(32.dp)
-                        )
+                        // Fallback when no image available
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Nightlight,
+                                contentDescription = "Moon",
+                                tint = Color(0xFFB0C4DE),
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "Moon Phase",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SoftWhite
+                            )
+                            Text(
+                                moonPhase,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Moon Phase", style = MaterialTheme.typography.bodySmall, color = SoftWhite)
-                    Text(moonPhase, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center)
                 }
             }
         }
@@ -1011,39 +1034,78 @@ fun AirQualityBar(label: String, value: String) {
 }
 
 @Composable
-fun NightSkyCard(imageUrl: String?) {
-    if (imageUrl != null) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Night Sky (North Star Region)",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = SoftWhite
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = GlassCard)
+fun NightSkyCard(
+    imageUrl: String?,
+    constellationName: String = "Orion"
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Night Sky Star Chart",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = SoftWhite
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = GlassCard)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
             ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                if (imageUrl != null) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(imageUrl)
                             .crossfade(true)
+                            .placeholder(android.R.drawable.ic_menu_gallery)
+                            .error(android.R.drawable.ic_menu_report_image)
                             .build(),
-                        contentDescription = "Night Sky Star Chart",
-                        contentScale = ContentScale.Crop,
+                        contentDescription = "Night Sky Star Chart - $constellationName constellation",
+                        contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp)
                     )
+                } else {
+                    // Placeholder when no image available
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Nightlight,
+                            contentDescription = "Loading star chart",
+                            tint = SoftWhite.copy(alpha = 0.5f),
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Loading star chart...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = SoftWhite.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
         }
+        
+        // Info text
+        Text(
+            text = "Star chart view: $constellationName",
+            style = MaterialTheme.typography.bodySmall,
+            color = SoftWhite.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        )
     }
 }
