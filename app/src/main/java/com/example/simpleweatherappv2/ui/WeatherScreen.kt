@@ -878,7 +878,7 @@ fun SunMoonSection(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Sun & Moon",
+            text = "Sun Details",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = SoftWhite
@@ -949,6 +949,15 @@ fun SunMoonSection(
         }
         
         Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            text = "Moon Phase",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = SoftWhite
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
         
         // 2. Moon Card (Full Width with Stats)
         Card(
