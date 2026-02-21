@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -50,6 +51,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private var lastWeatherData: WeatherApiResponse? = null
     private var lastMoonPhaseImage: String? = null
     private var lastStarChartImage: String? = null
+    /** Geocoder-resolved city name to persist across settings re-renders (null = use WeatherAPI name). */
+    private var lastResolvedCityName: String? = null
 
     // ==================== SETTINGS METHODS ====================
 
@@ -184,7 +187,12 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
-     * Fetch weather using current GPS location
+     * Fetch weather using current GPS location.
+     *
+     * Two-phase strategy for speed + accuracy:
+     *  Phase 1 — Use the last CACHED location (instant) so weather loads right away.
+     *  Phase 2 — Request a FRESH GPS fix (up to 10 s). If the new coordinates differ
+     *            meaningfully from the cached ones, refresh the weather silently.
      */
     fun fetchCurrentLocation() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -198,15 +206,49 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 speedUnit = speedUnit
             )
 
-            val coords = repository.getCurrentLocation()
+            // ── Phase 1: instant cached location ────────────────────────────
+            val lastCoords = repository.getLastKnownLocation()
+            if (lastCoords != null) {
+                android.util.Log.d("Location", "Using cached location: ${lastCoords.first}, ${lastCoords.second}")
+                val cityName = repository.getCityName(lastCoords.first, lastCoords.second)
+                fetchAndDisplayWeather(cityName, lastCoords.first, lastCoords.second, isGps = true)
+            }
 
-            if (coords != null) {
-                val cityName = repository.getCityName(coords.first, coords.second)
-                fetchAndDisplayWeather(cityName, coords.first, coords.second, isGps = true)
-            } else {
-                showError("Location denied or not found")
+            // ── Phase 2: fresh GPS fix (10-second timeout) ───────────────────
+            val freshCoords = withTimeoutOrNull(10_000L) {
+                try { repository.getFreshLocation() } catch (e: Exception) { null }
+            }
+
+            when {
+                freshCoords != null -> {
+                    android.util.Log.d("Location", "Fresh GPS fix: ${freshCoords.first}, ${freshCoords.second}")
+                    // Only re-fetch weather if coordinates changed meaningfully (> ~50 m)
+                    val coordsChanged = lastCoords == null ||
+                        haversineMeters(lastCoords.first, lastCoords.second,
+                                        freshCoords.first, freshCoords.second) > 50.0
+                    if (coordsChanged) {
+                        val cityName = repository.getCityName(freshCoords.first, freshCoords.second)
+                        fetchAndDisplayWeather(cityName, freshCoords.first, freshCoords.second, isGps = true)
+                    }
+                }
+                lastCoords == null -> {
+                    // No location at all — cached was empty and fresh timed out
+                    showError("Location unavailable. Enable GPS or search manually.")
+                }
+                // else: fresh timed out but we already displayed with cached coords — all good
             }
         }
+    }
+
+    /** Haversine distance in metres between two lat/lon points. */
+    private fun haversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6_371_000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2).let { it * it } +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                Math.sin(dLon / 2).let { it * it }
+        return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
     }
 
     /**
@@ -228,22 +270,30 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     // ==================== PRIVATE HELPER METHODS ====================
 
     /**
-     * Fetch weather data and update UI state
+     * Fetch weather data and update UI state.
+     *
+     * @param cityNameOverride When non-null, this name (from Geocoder) is shown instead of
+     *   WeatherAPI's location name. Fixes border-city mismatch (e.g. Montvale vs Chestnut Ridge).
      */
     private suspend fun fetchAndDisplayWeather(
         city: String,
         lat: Double,
         lon: Double,
-        isGps: Boolean
+        isGps: Boolean,
+        cityNameOverride: String? = city.takeIf { isGps }
     ) = coroutineScope {
         // 1. Fetch main weather data FIRST
         val weatherData = repository.getWeatherData(lat, lon)
-        
+
         if (weatherData != null) {
             // Update UI immediately with weather data
             lastWeatherData = weatherData
-            updateUiStateFromWeatherApi(weatherData, lastMoonPhaseImage, lastStarChartImage, isGps = isGps)
-            
+            lastResolvedCityName = cityNameOverride  // cache so reapplySettings stays accurate
+            updateUiStateFromWeatherApi(
+                weatherData, lastMoonPhaseImage, lastStarChartImage,
+                isGps = isGps, cityNameOverride = cityNameOverride
+            )
+
             // 2. Then fetch astronomy data in parallel
             val localDate = weatherData.location.localtime.split(" ")[0]
             val moonImageDeferred = async { repository.getMoonPhaseImage(lat, lon, localDate) }
@@ -254,22 +304,29 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
             if (moonImage != null) lastMoonPhaseImage = moonImage
             if (starChart != null) lastStarChartImage = starChart
-            
+
             // 3. Update UI again with astronomy data
-            updateUiStateFromWeatherApi(weatherData, lastMoonPhaseImage, lastStarChartImage, isGps = isGps)
+            updateUiStateFromWeatherApi(
+                weatherData, lastMoonPhaseImage, lastStarChartImage,
+                isGps = isGps, cityNameOverride = cityNameOverride
+            )
         } else {
             showError("Weather data unavailable")
         }
     }
 
     /**
-     * Update UI state from WeatherAPI response
+     * Update UI state from WeatherAPI response.
+     *
+     * @param cityNameOverride When non-null (GPS mode), use this Geocoder-resolved name
+     *   instead of WeatherAPI's location name to show the correct city at borders.
      */
     private fun updateUiStateFromWeatherApi(
         data: WeatherApiResponse,
         moonPhaseImageUrl: String? = null,
         starChartImageUrl: String? = null,
-        isGps: Boolean
+        isGps: Boolean,
+        cityNameOverride: String? = null
     ) {
         val current = data.current
         val forecastDay = data.forecast.forecastDay.firstOrNull()
@@ -388,8 +445,12 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
 
         // Update UI state
+        // Use Geocoder override for GPS so city name matches the device's map data,
+        // not WeatherAPI's nearest-station lookup (fixes border mismatches).
+        val displayCity = cityNameOverride ?: "${data.location.name}, ${data.location.region}"
+
         _uiState.value = _uiState.value.copy(
-            cityName = "${data.location.name}, ${data.location.region}",
+            cityName = displayCity,
             temperature = "${tempVal.toInt()}$tempUnit",
             condition = current.condition.text,
             isDaytime = current.isDay == 1,
@@ -469,7 +530,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 lastWeatherData!!,
                 lastMoonPhaseImage,
                 lastStarChartImage,
-                isGps = _uiState.value.isUsingGps
+                isGps = _uiState.value.isUsingGps,
+                cityNameOverride = lastResolvedCityName  // preserve accurate city name
             )
         } else {
             refreshWeather()

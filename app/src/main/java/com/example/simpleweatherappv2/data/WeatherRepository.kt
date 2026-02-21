@@ -11,7 +11,9 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import java.util.Locale
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 @Suppress("DEPRECATION")
 class WeatherRepository(private val context: Context) {
@@ -24,20 +26,18 @@ class WeatherRepository(private val context: Context) {
     // ==================== LOCATION METHODS ====================
 
     /**
-     * Get current GPS location
-     * Returns Pair<Latitude, Longitude> or null if unavailable
+     * Returns the last CACHED location instantly (no GPS polling).
+     * This is the fast path — use it first to show weather without waiting.
+     * Returns Pair<Latitude, Longitude> or null if no cached location exists.
      */
     @SuppressLint("MissingPermission")
-    suspend fun getCurrentLocation(): Pair<Double, Double>? = suspendCoroutine { continuation ->
+    suspend fun getLastKnownLocation(): Pair<Double, Double>? = suspendCoroutine { continuation ->
         try {
-            // Check if we actually have permission
             val hasFine = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
+                context, Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
             val hasCoarse = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+                context, Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
 
             if (!hasFine && !hasCoarse) {
@@ -45,39 +45,65 @@ class WeatherRepository(private val context: Context) {
                 return@suspendCoroutine
             }
 
-            // Determine priority based on permission
+            fusedLocationClient.lastLocation
+                .addOnSuccessListener { location ->
+                    continuation.resume(location?.let { Pair(it.latitude, it.longitude) })
+                }
+                .addOnFailureListener {
+                    continuation.resume(null)
+                }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            continuation.resume(null)
+        }
+    }
+
+    /**
+     * Request a FRESH GPS fix. More accurate but can take 10-30 seconds.
+     * Use withTimeoutOrNull() in the ViewModel to bound the wait time.
+     * Uses suspendCancellableCoroutine so the coroutine timeout can cancel it.
+     * Returns Pair<Latitude, Longitude> or null if permission denied.
+     */
+    @SuppressLint("MissingPermission")
+    suspend fun getFreshLocation(): Pair<Double, Double>? = suspendCancellableCoroutine { continuation ->
+        try {
+            val hasFine = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasCoarse = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasFine && !hasCoarse) {
+                continuation.resume(null)
+                return@suspendCancellableCoroutine
+            }
+
             val priority = if (hasFine) {
                 Priority.PRIORITY_HIGH_ACCURACY
             } else {
                 Priority.PRIORITY_BALANCED_POWER_ACCURACY
             }
 
-            // Request a FRESH location fix
             val cts = CancellationTokenSource()
+
+            // Cancel the GPS request if the coroutine is cancelled (e.g., timeout)
+            continuation.invokeOnCancellation { cts.cancel() }
+
             fusedLocationClient.getCurrentLocation(priority, cts.token)
                 .addOnSuccessListener { location ->
-                    if (location != null) {
-                        continuation.resume(Pair(location.latitude, location.longitude))
-                    } else {
-                        // Fallback to last known if fresh fix fails
-                        fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
-                            continuation.resume(lastLoc?.let { Pair(it.latitude, it.longitude) })
-                        }.addOnFailureListener {
-                            continuation.resume(null)
-                        }
+                    if (continuation.isActive) {
+                        continuation.resume(location?.let { Pair(it.latitude, it.longitude) })
                     }
                 }
-                .addOnFailureListener {
-                    // Fallback to last known on error
-                    fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
-                        continuation.resume(lastLoc?.let { Pair(it.latitude, it.longitude) })
-                    }.addOnFailureListener {
-                        continuation.resume(null)
+                .addOnFailureListener { ex ->
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(ex)
                     }
                 }
         } catch (e: Exception) {
             e.printStackTrace()
-            continuation.resume(null)
+            if (continuation.isActive) continuation.resume(null)
         }
     }
 
@@ -103,8 +129,9 @@ class WeatherRepository(private val context: Context) {
     }
 
     /**
-     * Convert coordinates to city name using Geocoder
-     * Returns formatted city name or "Unknown Location"
+     * Convert coordinates to city name using Geocoder.
+     * Tries increasingly broader address fields to find the best city name.
+     * Returns formatted "City, State" or "Unknown Location".
      */
     fun getCityName(lat: Double, lon: Double): String {
         return try {
@@ -113,10 +140,23 @@ class WeatherRepository(private val context: Context) {
 
             if (!addresses.isNullOrEmpty()) {
                 val address = addresses[0]
-                val city = address.locality ?: "Unknown City"
+
+                // Prefer locality (city/town) — most accurate for city-level display.
+                // Fall back to subAdminArea (county) if locality is missing.
+                val city = address.locality
+                    ?: address.subAdminArea
+                    ?: address.adminArea
+                    ?: "Unknown City"
+
+                // Use state abbreviation if available (adminArea gives full state name in US)
                 val state = address.adminArea ?: ""
 
-                if (state.isNotEmpty()) {
+                android.util.Log.d("Location",
+                    "Geocoder result: locality=${address.locality}, " +
+                    "subAdminArea=${address.subAdminArea}, adminArea=${address.adminArea}, " +
+                    "for lat=$lat, lon=$lon")
+
+                if (state.isNotEmpty() && city != state) {
                     "$city, $state"
                 } else {
                     city
